@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, Image as ImageIcon, Feather, Layers, List, Play } from 'lucide-react';
+import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, Image as ImageIcon, Feather, Layers, List, Play, Sliders } from 'lucide-react';
 import NovelStudioEditor from './NovelStudioEditor';
+import SeriesStructurePage from './SeriesStructurePage';
 
 export default function WritersRoomTab({
   seriesList,
@@ -10,67 +11,54 @@ export default function WritersRoomTab({
   onUpdateSeries,
   onDeleteSeries
 }) {
-  const [subTab, setSubTab] = useState('novel'); // 'novel' | 'shelf' | 'screenplay'
+  const [subTab, setSubTab] = useState('novel'); // 'novel' | 'shelf' | 'structure' | 'new-series' | 'screenplay'
   const [activeShotIndex, setActiveShotIndex] = useState(0);
   const [isAiOptimizing, setIsAiOptimizing] = useState(false);
   const [optimizationSuccess, setOptimizationSuccess] = useState('');
-  
-  // Modals state
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-
-  // Form state for New Series
-  const [newSeriesForm, setNewSeriesForm] = useState({
-    title: '',
-    englishTitle: '',
-    genre: 'Romantic Revenge / Billionaire Mystery',
-    episodesCount: 60,
-    coverUrl: '/assets/cover_gilded_shadow.jpg',
-    logline: '',
-    synopsis: '',
-    coreConflict: '',
-    hookStrategy: '',
-    cliffhangerStrategy: ''
-  });
-
-  // Form state for Editing Active Series
-  const [editSeriesForm, setEditSeriesForm] = useState({ ...activeSeries });
 
   const shots = activeSeries.shots || [];
   const selectedShot = shots[activeShotIndex] || shots[0] || {};
 
-  const handleOpenEdit = () => {
-    setEditSeriesForm({ ...activeSeries });
-    setShowEditModal(true);
+  const handleSaveStructure = (formData) => {
+    onUpdateSeries({
+      ...activeSeries,
+      ...formData
+    });
+    setSubTab('novel');
+    setOptimizationSuccess(`บันทึกการแก้ไขโครงสร้าง "${formData.title}" เรียบร้อยแล้ว`);
+    setTimeout(() => setOptimizationSuccess(''), 3500);
   };
 
-  const handleSaveEdit = (e) => {
-    e.preventDefault();
-    onUpdateSeries(editSeriesForm);
-    setShowEditModal(false);
-    setOptimizationSuccess('บันทึกการแก้ไขโครงสร้างนิยายเรียบร้อย');
-    setTimeout(() => setOptimizationSuccess(''), 3000);
-  };
-
-  const handleSaveNew = (e) => {
-    e.preventDefault();
-    if (!newSeriesForm.title.trim()) return;
-
+  const handleSaveNewSeries = (formData) => {
     const newId = `series-${Date.now()}`;
     const createdSeries = {
-      ...newSeriesForm,
+      ...formData,
       id: newId,
       currentEpisode: 1,
       episodeTitle: 'EP 01: จุดเริ่มต้น (The Beginning)',
       productionStatus: 'Writers Room Drafting',
-      aspectRatio: '9:16 Vertical UHD (1080x1920)',
-      targetFormat: 'TikTok / ReelShort / DramaBox',
       pacingScore: {
         hookScore: 95,
         cliffhangerScore: 92,
         tensionIndex: 90,
         retentionProbability: '97.5% (High)'
       },
+      volumes: [
+        { id: `vol-${Date.now()}`, title: 'เล่มที่ 1: ปฐมบท' }
+      ],
+      chapters: [
+        {
+          id: `ch-${Date.now()}`,
+          number: 1,
+          volumeId: `vol-${Date.now()}`,
+          title: 'ตอนที่ 1: การเริ่มต้น',
+          status: 'กำลังเขียน (Draft)',
+          wordCount: 0,
+          content: '',
+          notes: 'เริ่มต้นแต่งนิยายเรื่องใหม่...',
+          comments: []
+        }
+      ],
       characters: [
         {
           id: `char-${Date.now()}`,
@@ -80,7 +68,7 @@ export default function WritersRoomTab({
           loraModel: 'Default_Lead_V1.safetensors',
           loraWeight: 0.88,
           faceLockAccuracy: '98.5%',
-          portrait: newSeriesForm.coverUrl || '/assets/rin_portrait.jpg',
+          portrait: formData.coverUrl || '/assets/rin_portrait.jpg',
           sheetImage: '/assets/rin_sheet.jpg',
           actingStyle: 'Method Acting',
           voiceProfile: {
@@ -99,96 +87,16 @@ export default function WritersRoomTab({
           ]
         }
       ],
-      shots: [
-        {
-          id: `shot-${Date.now()}-1`,
-          number: '01',
-          name: 'The 3-Second Hook Scene',
-          timecode: '00:00 - 00:04',
-          duration: '4.0s',
-          cameraDirector: {
-            lens: '85mm Cine Prime f/1.4',
-            movement: 'Vertical Slow Push-In',
-            framing: 'Extreme Close-Up 9:16',
-            depthOfField: 'Ultra Shallow f/1.4',
-            tiltAngle: 'Eye-level'
-          },
-          actorDirecting: {
-            character: 'ตัวละครเอก',
-            facialMicroExpressions: 'ดวงตามุ่งมั่นสบตากล้องโดยตรง ริมฝีปากเม้มแน่น',
-            bodyLanguage: 'ยืนสง่างาม ไม่หวั่นไหว',
-            facsCode: 'AU1+AU4 Synced'
-          },
-          vocalProsody: {
-            dialogue: 'ความจริงมีเพียงหนึ่งเดียว และฉันจะเปิดเผยมันในคืนนี้!',
-            withCues: '[เสียงสูดลมหายใจมุ่งมั่น] ความจริงมีเพียงหนึ่งเดียว และฉันจะเปิดเผยมันในคืนนี้!',
-            emotionTag: 'Fierce Determination 9/10',
-            vocalCurve: 'เสียงคมชัดทรงพลัง'
-          },
-          location: 'ฉากเปิดเรื่องหลัก',
-          lighting: 'Cinematic High Contrast',
-          sfx: 'Dramatic whoosh and heavy heartbeat',
-          bgm: 'Rising orchestral tension',
-          qaStatus: 'PASS',
-          aiHookScore: 95,
-          mediaUrl: newSeriesForm.coverUrl || '/assets/vertical_shot_boardroom.jpg'
-        }
-      ],
-      sponsorProduct: {
-        id: `sp-${Date.now()}`,
-        brand: 'PREMIUM BRAND',
-        productName: 'Signature Luxury Product',
-        tagline: 'คุณภาพระดับพรีเมียม',
-        heroImage: '/assets/sponsor_serum.jpg',
-        category: 'Luxury Goods',
-        contractTier: 'Tier-1 Sponsor',
-        placementsPerEpisode: 1,
-        targetScreenTimeSec: 4.5,
-        actualScreenTimeSec: 4.5,
-        estimatedAudienceViews: '2,000,000+ views',
-        safeZoneVerified: true,
-        sponsorStatus: 'Planning',
-        sponsorRevenueTHB: 350000,
-        placementNotes: 'วางในฉากสำคัญ'
-      },
-      qaReport: {
-        overallScore: 96.5,
-        status: 'Drafting',
-        checks: [
-          {
-            id: 'chk-new-1',
-            category: 'Story & Hook Structure',
-            score: 96.0,
-            status: 'PASS',
-            details: 'โครงสร้างเรื่องมี Hook และจุด Climax ชัดเจน'
-          }
-        ],
-        directorReview: {
-          isApproved: false,
-          approvedBy: 'ผู้กำกับ',
-          directorNote: 'พล็อตน่าสนใจ ดำเนินการต่อได้',
-          revisionHistory: []
-        }
-      }
+      shots: activeSeries.shots || []
     };
 
     onAddSeries(createdSeries);
-    setShowAddModal(false);
-    setNewSeriesForm({
-      title: '',
-      englishTitle: '',
-      genre: 'Romantic Revenge / Billionaire Mystery',
-      episodesCount: 60,
-      coverUrl: '/assets/cover_gilded_shadow.jpg',
-      logline: '',
-      synopsis: '',
-      coreConflict: '',
-      hookStrategy: '',
-      cliffhangerStrategy: ''
-    });
-    setOptimizationSuccess(`สร้างซีรีส์เรื่องใหม่ "${createdSeries.title}" สำเร็จ!`);
-    setTimeout(() => setOptimizationSuccess(''), 3000);
+    setSubTab('novel');
+    setOptimizationSuccess(`สร้างซีรีส์เรื่องใหม่ "${createdSeries.title}" สำเร็จ! พร้อมเริ่มแต่งนิยาย`);
+    setTimeout(() => setOptimizationSuccess(''), 3500);
   };
+
+
 
   const handleRunAiOptimize = (type) => {
     setIsAiOptimizing(true);
@@ -209,6 +117,7 @@ export default function WritersRoomTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '20px 0' }}>
       
       {/* 0. WRITERS ROOM SUB-NAV BAR (สลับระหว่าง หน้าแต่งนิยาย, คลังภาพปก & โครงสร้างหลัก, และบทซีรีส์ 9:16) */}
+      {/* 0. WRITERS ROOM SUB-NAV BAR (สลับระหว่าง หน้าแต่งนิยาย, คลังภาพปก & โครงเรื่องหลัก, ตั้งค่าโครงสร้างซีรีส์, และบทซีรีส์ 9:16) */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
         <div style={{
           display: 'inline-flex',
@@ -239,7 +148,7 @@ export default function WritersRoomTab({
             }}
           >
             <Feather size={16} strokeWidth={2} />
-            <span>1. หน้าแต่งนิยาย & AI ช่วยเขียน (Novel Studio)</span>
+            <span>1. แต่งนิยาย & ตรวจบท (Novel Studio)</span>
           </button>
 
           <button
@@ -261,7 +170,29 @@ export default function WritersRoomTab({
             }}
           >
             <BookOpen size={16} strokeWidth={2} />
-            <span>2. คลังภาพปก & โครงสร้างหลัก (Series Shelf & Lore)</span>
+            <span>2. คลังภาพปก & ซีรีส์ทั้งหมด (Series Shelf)</span>
+          </button>
+
+          <button
+            onClick={() => setSubTab('structure')}
+            style={{
+              padding: '8px 18px',
+              borderRadius: 'var(--radius-pill)',
+              background: (subTab === 'structure' || subTab === 'new-series') ? 'var(--teal-primary)' : 'transparent',
+              color: (subTab === 'structure' || subTab === 'new-series') ? '#FFFFFF' : 'var(--text-main)',
+              border: 'none',
+              fontWeight: (subTab === 'structure' || subTab === 'new-series') ? 700 : 500,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: (subTab === 'structure' || subTab === 'new-series') ? 'var(--shadow-teal-btn)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Sliders size={16} strokeWidth={2} />
+            <span>3. จัดการโครงสร้างซีรีส์ (Structure & Lore)</span>
           </button>
 
           <button
@@ -283,7 +214,7 @@ export default function WritersRoomTab({
             }}
           >
             <Film size={16} strokeWidth={2} />
-            <span>3. บทซีรีส์ 9:16 (Vertical Screenplay)</span>
+            <span>4. บทซีรีส์ 9:16 (Vertical Screenplay)</span>
           </button>
         </div>
 
@@ -320,10 +251,31 @@ export default function WritersRoomTab({
           onConvertToScreenplay={(chapter) => {
             setSubTab('screenplay');
           }}
+          onOpenSeriesSettings={() => setSubTab('structure')}
         />
       )}
 
-      {/* SUB-VIEW 2: SERIES SHELF & MASTER LORE */}
+      {/* SUB-VIEW 2: DEDICATED FULL-PAGE EDIT SERIES STRUCTURE (NON-POPUP) */}
+      {subTab === 'structure' && (
+        <SeriesStructurePage
+          series={activeSeries}
+          isNew={false}
+          onSave={handleSaveStructure}
+          onCancel={() => setSubTab('shelf')}
+        />
+      )}
+
+      {/* SUB-VIEW 3: DEDICATED FULL-PAGE CREATE NEW SERIES (NON-POPUP) */}
+      {subTab === 'new-series' && (
+        <SeriesStructurePage
+          series={null}
+          isNew={true}
+          onSave={handleSaveNewSeries}
+          onCancel={() => setSubTab('shelf')}
+        />
+      )}
+
+      {/* SUB-VIEW 4: SERIES SHELF & MASTER LORE */}
       {subTab === 'shelf' && (
         <>
           {/* 1. TOP SECTION: SERIES LIBRARY & BOOK COVERS SHELF (เพิ่ม / แก้ไข / ลบ เรื่อง) */}
@@ -343,7 +295,7 @@ export default function WritersRoomTab({
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => setSubTab('new-series')}
               className="btn-primary"
             >
               <Plus size={16} strokeWidth={2} />
@@ -475,7 +427,7 @@ export default function WritersRoomTab({
 
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
-                        onClick={() => { onSelectSeries(item.id); handleOpenEdit(); }}
+                        onClick={() => { onSelectSeries(item.id); setSubTab('structure'); }}
                         style={{
                           width: '32px',
                           height: '32px',
@@ -557,7 +509,7 @@ export default function WritersRoomTab({
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={handleOpenEdit} className="btn-secondary">
+            <button onClick={() => setSubTab('structure')} className="btn-secondary">
               <Edit3 size={15} strokeWidth={2} />
               <span>แก้ไขโครงสร้างนิยาย</span>
             </button>
@@ -945,350 +897,6 @@ export default function WritersRoomTab({
         </div>
       </div>
     )}
-
-      {/* 4. MODAL: สร้างซีรีส์เรื่องใหม่ (CREATE NEW SERIES) */}
-      {showAddModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(29, 36, 37, 0.65)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100,
-          padding: '20px'
-        }}>
-          <div className="clay-card" style={{
-            width: '100%',
-            maxWidth: '680px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '28px',
-            background: 'var(--bg-surface)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <BookOpen size={20} strokeWidth={2} color="var(--teal-primary)" />
-                <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
-                  สร้างซีรีส์เรื่องใหม่ (New Series & Book Structure)
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowAddModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-dim)' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveNew} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    ชื่อเรื่องภาษาไทย *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newSeriesForm.title}
-                    onChange={(e) => setNewSeriesForm({ ...newSeriesForm, title: e.target.value })}
-                    placeholder="เช่น กับดักรักประธานมาเฟีย"
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    ชื่อเรื่องภาษาอังกฤษ
-                  </label>
-                  <input
-                    type="text"
-                    value={newSeriesForm.englishTitle}
-                    onChange={(e) => setNewSeriesForm({ ...newSeriesForm, englishTitle: e.target.value })}
-                    placeholder="e.g. Underworld Vow"
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    หมวดหมู่ / แนวนิยาย (Genre)
-                  </label>
-                  <input
-                    type="text"
-                    value={newSeriesForm.genre}
-                    onChange={(e) => setNewSeriesForm({ ...newSeriesForm, genre: e.target.value })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    จำนวนตอนที่วางแผนไว้ (ตอน)
-                  </label>
-                  <input
-                    type="number"
-                    value={newSeriesForm.episodesCount}
-                    onChange={(e) => setNewSeriesForm({ ...newSeriesForm, episodesCount: parseInt(e.target.value) || 60 })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              {/* Cover Selection */}
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>
-                  เลือกภาพปกนิยาย (Book Cover Art)
-                </label>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  {[
-                    { id: 'c1', url: '/assets/cover_gilded_shadow.jpg', label: 'The Gilded Shadow' },
-                    { id: 'c2', url: '/assets/cover_ruthless_heir.jpg', label: 'The Ruthless Heir' },
-                    { id: 'c3', url: '/assets/rin_extreme_acting.jpg', label: 'Emotional Drama' }
-                  ].map(c => (
-                    <div
-                      key={c.id}
-                      onClick={() => setNewSeriesForm({ ...newSeriesForm, coverUrl: c.url })}
-                      style={{
-                        cursor: 'pointer',
-                        borderRadius: 'var(--radius-sm)',
-                        overflow: 'hidden',
-                        border: newSeriesForm.coverUrl === c.url ? '3px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
-                        boxShadow: newSeriesForm.coverUrl === c.url ? 'var(--shadow-teal-btn)' : 'none',
-                        textAlign: 'center'
-                      }}
-                    >
-                      <img src={c.url} alt={c.label} style={{ width: '80px', height: '110px', objectFit: 'cover', display: 'block' }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                  Logline (ประโยคแกนเรื่อง 1 ประโยค)
-                </label>
-                <input
-                  type="text"
-                  value={newSeriesForm.logline}
-                  onChange={(e) => setNewSeriesForm({ ...newSeriesForm, logline: e.target.value })}
-                  placeholder="เช่น เมื่อทายาทตระกูลลึกลับกลับมาเปิดโปงความแค้น..."
-                  className="clay-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                  โครงเรื่องเต็ม (Full Synopsis)
-                </label>
-                <textarea
-                  rows={3}
-                  value={newSeriesForm.synopsis}
-                  onChange={(e) => setNewSeriesForm({ ...newSeriesForm, synopsis: e.target.value })}
-                  placeholder="เนื้อเรื่องหลัก, ปมขัดแย้ง และจุดเปลี่ยนของเรื่อง..."
-                  className="clay-input"
-                  style={{ width: '100%', resize: 'vertical' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="btn-secondary"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                >
-                  <Plus size={16} strokeWidth={2} />
-                  <span>สร้างซีรีส์</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 5. MODAL: แก้ไขโครงสร้างซีรีส์ (EDIT SERIES STRUCTURE) */}
-      {showEditModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(29, 36, 37, 0.65)',
-          backdropFilter: 'blur(6px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 100,
-          padding: '20px'
-        }}>
-          <div className="clay-card" style={{
-            width: '100%',
-            maxWidth: '680px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '28px',
-            background: 'var(--bg-surface)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Edit3 size={20} strokeWidth={2} color="var(--teal-primary)" />
-                <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
-                  แก้ไขโครงสร้างซีรีส์: {activeSeries.title}
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowEditModal(false)}
-                style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--text-dim)' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    ชื่อเรื่องภาษาไทย
-                  </label>
-                  <input
-                    type="text"
-                    value={editSeriesForm.title}
-                    onChange={(e) => setEditSeriesForm({ ...editSeriesForm, title: e.target.value })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    ชื่อเรื่องภาษาอังกฤษ
-                  </label>
-                  <input
-                    type="text"
-                    value={editSeriesForm.englishTitle}
-                    onChange={(e) => setEditSeriesForm({ ...editSeriesForm, englishTitle: e.target.value })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    หมวดหมู่ / แนวนิยาย
-                  </label>
-                  <input
-                    type="text"
-                    value={editSeriesForm.genre}
-                    onChange={(e) => setEditSeriesForm({ ...editSeriesForm, genre: e.target.value })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    จำนวนตอนทั้งหมด
-                  </label>
-                  <input
-                    type="number"
-                    value={editSeriesForm.episodesCount}
-                    onChange={(e) => setEditSeriesForm({ ...editSeriesForm, episodesCount: parseInt(e.target.value) || 60 })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                  Logline
-                </label>
-                <textarea
-                  rows={2}
-                  value={editSeriesForm.logline}
-                  onChange={(e) => setEditSeriesForm({ ...editSeriesForm, logline: e.target.value })}
-                  className="clay-input"
-                  style={{ width: '100%', resize: 'vertical' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                  เรื่องย่อฉบับเต็ม (Synopsis)
-                </label>
-                <textarea
-                  rows={4}
-                  value={editSeriesForm.synopsis}
-                  onChange={(e) => setEditSeriesForm({ ...editSeriesForm, synopsis: e.target.value })}
-                  className="clay-input"
-                  style={{ width: '100%', resize: 'vertical' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    กลยุทธ์ 3-Second Hook
-                  </label>
-                  <input
-                    type="text"
-                    value={editSeriesForm.hookStrategy || ''}
-                    onChange={(e) => setEditSeriesForm({ ...editSeriesForm, hookStrategy: e.target.value })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-main)', display: 'block', marginBottom: '4px' }}>
-                    กลยุทธ์ Cliffhanger ท้ายตอน
-                  </label>
-                  <input
-                    type="text"
-                    value={editSeriesForm.cliffhangerStrategy || ''}
-                    onChange={(e) => setEditSeriesForm({ ...editSeriesForm, cliffhangerStrategy: e.target.value })}
-                    className="clay-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="btn-secondary"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                >
-                  <Check size={16} strokeWidth={2} />
-                  <span>บันทึกการแก้ไข</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
