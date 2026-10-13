@@ -56,8 +56,37 @@ export default function WritersRoomTab({
       ...activeSeries,
       ...formData
     });
-    setSubTab('novel');
+    setSubTab('novel', activeSeries.id);
     setOptimizationSuccess(`บันทึกการแก้ไขโครงสร้าง "${formData.title}" เรียบร้อยแล้ว`);
+    setTimeout(() => setOptimizationSuccess(''), 3500);
+  };
+
+  const handleAddNewChapterFromStructure = (formData) => {
+    const existingChapters = activeSeries.chapters || [];
+    const newNumber = existingChapters.length + 1;
+    const newChapterId = `ch-${Date.now()}`;
+    const newVolId = activeSeries.volumes?.[0]?.id || `vol-01`;
+
+    const newChapter = {
+      id: newChapterId,
+      number: newNumber,
+      volumeId: newVolId,
+      title: `ตอนที่ ${newNumber}: ปมปริศนาบทใหม่`,
+      status: 'กำลังเขียน (Draft)',
+      wordCount: 0,
+      content: '',
+      notes: 'เริ่มต้นแต่งตอนใหม่...',
+      comments: []
+    };
+
+    onUpdateSeries({
+      ...activeSeries,
+      ...formData,
+      chapters: [...existingChapters, newChapter]
+    });
+
+    setSubTab('novel', activeSeries.id);
+    setOptimizationSuccess(`สร้างตอนที่ ${newNumber} สำเร็จ พร้อมเขียนใน Google Docs`);
     setTimeout(() => setOptimizationSuccess(''), 3500);
   };
 
@@ -240,52 +269,29 @@ export default function WritersRoomTab({
 
       {/* SUB-VIEW 2: DEDICATED FULL-PAGE EDIT SERIES STRUCTURE */}
       {subTab === 'structure' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <button
-              onClick={() => setSubTab('shelf')}
-              className="btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700 }}
-            >
-              <ArrowLeft size={16} strokeWidth={2.5} />
-              <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
-            </button>
-            <button
-              onClick={() => setSubTab('novel')}
-              className="btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem' }}
-            >
-              <Feather size={16} strokeWidth={2} />
-              <span>เข้าสู่หน้าเขียนนิยาย</span>
-            </button>
-          </div>
-          <SeriesStructurePage
-            series={activeSeries}
-            isNew={false}
-            onSave={handleSaveStructure}
-            onCancel={() => setSubTab('shelf')}
-          />
-        </div>
+        <SeriesStructurePage
+          series={activeSeries}
+          isNew={false}
+          onSave={handleSaveStructure}
+          onCancel={() => setSubTab('shelf')}
+          onGoToNovel={(formData) => {
+            onUpdateSeries({ ...activeSeries, ...formData });
+            setSubTab('novel', activeSeries.id);
+          }}
+          onAddNewChapter={handleAddNewChapterFromStructure}
+        />
       )}
 
       {/* SUB-VIEW 3: DEDICATED FULL-PAGE CREATE NEW SERIES */}
       {subTab === 'new-series' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <button
-            onClick={() => setSubTab('shelf')}
-            className="btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, alignSelf: 'flex-start' }}
-          >
-            <ArrowLeft size={16} strokeWidth={2.5} />
-            <span>← ยกเลิก / กลับไปคลังนิยาย</span>
-          </button>
-          <SeriesStructurePage
-            series={null}
-            isNew={true}
-            onSave={handleSaveNewSeries}
-            onCancel={() => setSubTab('shelf')}
-          />
-        </div>
+        <SeriesStructurePage
+          series={null}
+          isNew={true}
+          onSave={handleSaveNewSeries}
+          onCancel={() => setSubTab('shelf')}
+          onGoToNovel={handleSaveNewSeries}
+          onAddNewChapter={handleSaveNewSeries}
+        />
       )}
 
       {/* SUB-VIEW 4: MAIN NOVEL PROJECTS & BOOK COVERS SHELF (DEFAULT) */}
