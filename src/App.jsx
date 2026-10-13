@@ -11,6 +11,7 @@ import './App.css';
 
 export default function App() {
   const [seriesList, setSeriesList] = useState(initialSeriesList);
+  const [trashList, setTrashList] = useState([]);
   const [activeSeriesId, setActiveSeriesId] = useState(initialSeriesList[0].id);
   const [activeTab, setActiveTab] = useState('writers');
   const [writersSubTab, setWritersSubTab] = useState('shelf');
@@ -38,14 +39,51 @@ export default function App() {
     setSeriesList(prev => prev.map(s => s.id === updatedSeries.id ? updatedSeries : s));
   };
 
-  const handleDeleteSeries = (deletedId) => {
+  // Soft Delete: Move to Trash for 7 days
+  const handleSoftDeleteSeries = (deletedId) => {
     if (seriesList.length <= 1) {
-      alert('ไม่สามารถลบซีรีส์เรื่องสุดท้ายในระบบได้');
+      alert('ไม่สามารถลบซีรีส์เรื่องสุดท้ายในระบบได้ กรุณาสร้างเรื่องใหม่ก่อนทำการลบ');
       return;
     }
+    const target = seriesList.find(s => s.id === deletedId);
+    if (!target) return;
+
+    const now = new Date();
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const trashedItem = {
+      ...target,
+      deletedAt: now.toISOString(),
+      expiresAt: expires.toISOString(),
+      daysRemaining: 7,
+      deletedDateFormatted: `${now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} ${now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`
+    };
+
+    setTrashList(prev => [trashedItem, ...prev]);
     const remaining = seriesList.filter(s => s.id !== deletedId);
     setSeriesList(remaining);
-    setActiveSeriesId(remaining[0].id);
+    if (activeSeriesId === deletedId && remaining.length > 0) {
+      setActiveSeriesId(remaining[0].id);
+    }
+  };
+
+  // Restore from Trash
+  const handleRestoreSeries = (restoredId) => {
+    const item = trashList.find(s => s.id === restoredId);
+    if (!item) return;
+    const { deletedAt, expiresAt, daysRemaining, deletedDateFormatted, ...cleanSeries } = item;
+    setSeriesList(prev => [...prev, cleanSeries]);
+    setTrashList(prev => prev.filter(s => s.id !== restoredId));
+    setActiveSeriesId(cleanSeries.id);
+  };
+
+  // Permanent Delete
+  const handlePermanentDeleteSeries = (permanentId) => {
+    setTrashList(prev => prev.filter(s => s.id !== permanentId));
+  };
+
+  // Empty Trash
+  const handleEmptyTrash = () => {
+    setTrashList([]);
   };
 
   const handleDirectorApprove = () => {
@@ -75,11 +113,15 @@ export default function App() {
         {activeTab === 'writers' && (
           <WritersRoomTab
             seriesList={seriesList}
+            trashList={trashList}
             activeSeries={activeSeries}
             onSelectSeries={handleSelectSeries}
             onAddSeries={handleAddSeries}
             onUpdateSeries={handleUpdateSeries}
-            onDeleteSeries={handleDeleteSeries}
+            onDeleteSeries={handleSoftDeleteSeries}
+            onRestoreSeries={handleRestoreSeries}
+            onPermanentDeleteSeries={handlePermanentDeleteSeries}
+            onEmptyTrash={handleEmptyTrash}
             onOpenCharacterBible={() => setActiveTab('character')}
             activeSubTab={writersSubTab}
             onSubTabChange={setWritersSubTab}

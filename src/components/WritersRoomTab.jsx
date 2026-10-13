@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, ArrowLeft, Image as ImageIcon, Feather, Layers, List, Play, Sliders } from 'lucide-react';
+import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, ArrowLeft, Image as ImageIcon, Feather, Layers, List, Play, Sliders, AlertTriangle, Clock, RotateCcw, X } from 'lucide-react';
 import NovelStudioEditor from './NovelStudioEditor';
 import SeriesStructurePage from './SeriesStructurePage';
 
 export default function WritersRoomTab({
   seriesList,
+  trashList = [],
   activeSeries,
   onSelectSeries,
   onAddSeries,
   onUpdateSeries,
   onDeleteSeries,
+  onRestoreSeries,
+  onPermanentDeleteSeries,
+  onEmptyTrash,
   onOpenCharacterBible,
   activeSubTab,
   onSubTabChange,
@@ -22,6 +26,12 @@ export default function WritersRoomTab({
     setInternalSubTab(newTab);
     if (onSubTabChange) onSubTabChange(newTab);
   };
+
+  // Trash & Soft Delete States
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [seriesPendingDelete, setSeriesPendingDelete] = useState(null);
+  const [showTrashModal, setShowTrashModal] = useState(false);
+  const [noticeMessage, setNoticeMessage] = useState('');
 
   const [activeShotIndex, setActiveShotIndex] = useState(0);
   const [isAiOptimizing, setIsAiOptimizing] = useState(false);
@@ -298,7 +308,42 @@ export default function WritersRoomTab({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTrashModal(true)}
+                  id="btn-open-trash-modal"
+                  className="btn-secondary"
+                  style={{
+                    padding: '9px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: trashList.length > 0 ? 'var(--accent-red)' : 'var(--text-muted)',
+                    borderColor: trashList.length > 0 ? 'rgba(185, 56, 72, 0.4)' : 'var(--border-subtle)',
+                    background: trashList.length > 0 ? 'var(--accent-red-bg)' : 'var(--bg-surface)'
+                  }}
+                  title="ดูรายการนิยายที่ถูกลบชั่วคราว (Soft Delete 7 วัน)"
+                >
+                  <Trash2 size={16} strokeWidth={2} />
+                  <span>ถังขยะ</span>
+                  {trashList.length > 0 && (
+                    <span style={{
+                      background: 'var(--accent-red)',
+                      color: '#fff',
+                      fontSize: '0.68rem',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: '10px',
+                      marginLeft: '2px'
+                    }}>
+                      {trashList.length}
+                    </span>
+                  )}
+                </button>
+
                 <button
                   onClick={() => setSubTab('new-series')}
                   id="btn-add-new-series-main"
@@ -318,6 +363,55 @@ export default function WritersRoomTab({
                 </button>
               </div>
             </div>
+
+            {/* Notice Message Alert if item trashed or restored */}
+            {noticeMessage && (
+              <div style={{
+                marginBottom: '18px',
+                padding: '10px 16px',
+                borderRadius: 'var(--radius-md)',
+                background: 'rgba(11, 74, 81, 0.08)',
+                border: '1.5px solid var(--teal-primary)',
+                color: 'var(--text-main)',
+                fontSize: '0.82rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: 'var(--shadow-raised-sm)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Check size={16} strokeWidth={2.5} color="var(--teal-primary)" />
+                  <span>{noticeMessage}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {trashList.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowTrashModal(true)}
+                      style={{
+                        background: 'var(--teal-primary)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 'var(--radius-pill)',
+                        padding: '4px 10px',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      เปิดถังขยะ ({trashList.length})
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setNoticeMessage('')}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '2px' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Series Covers Grid */}
             <div style={{
@@ -474,11 +568,12 @@ export default function WritersRoomTab({
 
                       {seriesList.length > 1 && (
                         <button
+                          type="button"
                           onClick={() => {
-                            if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบซีรีส์ "${item.title}"?`)) {
-                              onDeleteSeries(item.id);
-                            }
+                            setSeriesPendingDelete(item);
+                            setShowDeleteConfirmModal(true);
                           }}
+                          id={`btn-trash-series-${item.id}`}
                           style={{
                             width: '32px',
                             height: '32px',
@@ -491,7 +586,7 @@ export default function WritersRoomTab({
                             cursor: 'pointer',
                             color: 'var(--accent-red)'
                           }}
-                          title="ลบซีรีส์นี้"
+                          title="ลบซีรีส์นี้ (ย้ายไปถังขยะ 7 วัน)"
                         >
                           <Trash2 size={14} strokeWidth={2} />
                         </button>
@@ -970,6 +1065,428 @@ export default function WritersRoomTab({
       </div>
     </div>
   )}
+    {/* ========================================================
+        CONFIRMATION MODAL: SOFT DELETE 7 DAYS (ป๊อปอัปยืนยันการลบ)
+       ======================================================== */}
+    {showDeleteConfirmModal && seriesPendingDelete && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        {/* Backdrop */}
+        <div
+          onClick={() => {
+            setShowDeleteConfirmModal(false);
+            setSeriesPendingDelete(null);
+          }}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(25, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)'
+          }}
+        />
+
+        {/* Dialog Card */}
+        <div className="clay-card" style={{
+          position: 'relative',
+          zIndex: 1,
+          background: '#FFFFFF',
+          maxWidth: '520px',
+          width: '100%',
+          padding: '26px',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.3)'
+        }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: 'var(--accent-red-bg)',
+                border: '1px solid rgba(185, 56, 72, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <Trash2 size={22} color="var(--accent-red)" strokeWidth={2.2} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  ยืนยันการย้ายนิยายไปที่ถังขยะ?
+                </h3>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  ระบบป้องกันความผิดพลาดด้วยการ Soft Delete สำรองไว้ 7 วัน
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteConfirmModal(false);
+                setSeriesPendingDelete(null);
+              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '4px' }}
+            >
+              <X size={18} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Target Series Preview Card */}
+          <div style={{
+            display: 'flex',
+            gap: '14px',
+            padding: '12px',
+            background: 'var(--bg-inset)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
+            marginBottom: '16px',
+            alignItems: 'center'
+          }}>
+            <img
+              src={seriesPendingDelete.coverUrl}
+              alt=""
+              style={{ width: '54px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border-subtle)', flexShrink: 0 }}
+            />
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {seriesPendingDelete.title}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--teal-primary)', fontWeight: 600, marginTop: '2px' }}>
+                {seriesPendingDelete.englishTitle}
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                <span>{seriesPendingDelete.episodesCount || 0} ตอน</span>
+                <span>&bull;</span>
+                <span>{(seriesPendingDelete.characters || []).length} ตัวละคร</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Soft Delete Explanation Box */}
+          <div style={{
+            background: 'rgba(11, 74, 81, 0.06)',
+            border: '1.5px dashed var(--teal-primary)',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px',
+            marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--teal-primary)', fontWeight: 700, fontSize: '0.82rem', marginBottom: '6px' }}>
+              <Clock size={16} strokeWidth={2} />
+              <span>นโยบายถังขยะ 7 วัน (7-Day Soft Delete Guarantee)</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+              การลบนี้เป็น <strong>Soft Delete</strong> โดยเนื้อหาทั้งหมด (ตอน, เล่ม, ตัวละคร, บทร่าง) จะถูกย้ายไปเก็บไว้ใน <strong>ถังขยะ (Trash Bin)</strong> ชั่วคราวเป็นเวลา <strong>7 วัน</strong> คุณสามารถกดกู้คืน (Restore) กลับมาได้ตลอดเวลา หรือปล่อยให้ระบบลบถาวรหลังพ้น 7 วัน
+            </p>
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteConfirmModal(false);
+                setSeriesPendingDelete(null);
+              }}
+              className="btn-secondary"
+              style={{ padding: '8px 18px', fontSize: '0.82rem' }}
+            >
+              ยกเลิก
+            </button>
+
+            <button
+              type="button"
+              id="btn-confirm-soft-delete"
+              onClick={() => {
+                const targetTitle = seriesPendingDelete.title;
+                onDeleteSeries(seriesPendingDelete.id);
+                setShowDeleteConfirmModal(false);
+                setSeriesPendingDelete(null);
+                setNoticeMessage(`ย้ายนิยาย "${targetTitle}" ไปที่ถังขยะแล้ว (สามารถกู้คืนได้ภายใน 7 วัน)`);
+                setTimeout(() => setNoticeMessage(''), 7000);
+              }}
+              style={{
+                background: 'var(--accent-red)',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 'var(--radius-pill)',
+                padding: '8px 20px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 12px rgba(185, 56, 72, 0.35)'
+              }}
+            >
+              <Trash2 size={14} strokeWidth={2} />
+              <span>ย้ายไปถังขยะ (Soft Delete 7 วัน)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ========================================================
+        TRASH BIN MODAL: VIEW & RESTORE SOFT-DELETED STORIES
+       ======================================================== */}
+    {showTrashModal && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px'
+      }}>
+        {/* Backdrop */}
+        <div
+          onClick={() => setShowTrashModal(false)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(25, 20, 15, 0.65)',
+            backdropFilter: 'blur(4px)'
+          }}
+        />
+
+        {/* Dialog Card */}
+        <div className="clay-card" style={{
+          position: 'relative',
+          zIndex: 1,
+          background: '#FFFFFF',
+          maxWidth: '680px',
+          width: '100%',
+          padding: '26px',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          {/* Modal Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '10px',
+                background: 'var(--accent-red-bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Trash2 size={20} color="var(--accent-red)" strokeWidth={2.2} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  ถังขยะระบบนิยาย & ซีรีส์ (Trash Bin)
+                </h3>
+                <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                  รายการที่ถูกลบชั่วคราวจะถูกเก็บไว้ 7 วัน ก่อนระบบจะลบถาวร
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowTrashModal(false)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '4px' }}
+            >
+              <X size={20} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* Trashed Items List or Empty State */}
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', minHeight: '220px' }}>
+            {trashList.length === 0 ? (
+              <div style={{
+                padding: '48px 24px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px'
+              }}>
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: 'var(--bg-inset)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--text-muted)'
+                }}>
+                  <Trash2 size={28} strokeWidth={1.5} />
+                </div>
+                <strong style={{ fontSize: '0.95rem', color: 'var(--text-main)' }}>
+                  ไม่มีนิยายในถังขยะ
+                </strong>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)', maxWidth: '340px' }}>
+                  นิยายและโครงสร้างทั้งหมดของคุณอยู่ในสถานะปลอดภัย เมื่อคุณลบนิยาย รายการจะมาพักไว้ที่นี่ 7 วันเพื่อป้องกันการลบพลาด
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {trashList.map(item => (
+                  <div
+                    key={item.id}
+                    style={{
+                      display: 'flex',
+                      gap: '14px',
+                      padding: '12px 14px',
+                      background: 'var(--bg-surface)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-subtle)',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <img
+                      src={item.coverUrl}
+                      alt=""
+                      style={{ width: '50px', height: '74px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--border-subtle)', flexShrink: 0 }}
+                    />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {item.title}
+                        </strong>
+                        <span style={{
+                          background: 'var(--accent-red-bg)',
+                          color: 'var(--accent-red)',
+                          fontSize: '0.66rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-pill)',
+                          border: '1px solid rgba(185, 56, 72, 0.25)',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          ⏳ เหลือเวลา {item.daysRemaining || 7} วัน
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        {item.englishTitle} &bull; ย้ายลงถังขยะเมื่อ: {item.deletedDateFormatted || 'เมื่อสักครู่'}
+                      </div>
+
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+                        {item.episodesCount} ตอน &bull; {(item.characters || []).length} ตัวละคร &bull; {(item.volumes || []).length} เล่ม
+                      </div>
+                    </div>
+
+                    {/* Restore & Permanent Delete Actions */}
+                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onRestoreSeries) onRestoreSeries(item.id);
+                          setNoticeMessage(`กู้คืนนิยาย "${item.title}" กลับสู่หน้าหลักเรียบร้อยแล้ว`);
+                          setTimeout(() => setNoticeMessage(''), 5000);
+                        }}
+                        className="btn-primary"
+                        style={{ padding: '6px 12px', fontSize: '0.76rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        title="กู้คืนนิยายเรื่องนี้กลับสู่คลังโปรเจกต์"
+                      >
+                        <RotateCcw size={12} strokeWidth={2.2} />
+                        <span>กู้คืน</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${item.title}" ถาวร? ข้อมูลทั้งหมดจะไม่สามารถกู้คืนได้อีก`)) {
+                            if (onPermanentDeleteSeries) onPermanentDeleteSeries(item.id);
+                          }
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: '1px solid var(--border-subtle)',
+                          color: 'var(--accent-red)',
+                          padding: '6px 10px',
+                          borderRadius: 'var(--radius-pill)',
+                          fontSize: '0.74rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                        title="ลบถาวรทันที"
+                      >
+                        <Trash2 size={12} strokeWidth={2} />
+                        <span>ลบถาวร</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Modal Footer */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)' }}>
+            {trashList.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("คุณต้องการล้างถังขยะทั้งหมดหรือไม่? นิยายทั้งหมดในถังขยะจะถูกลบถาวร")) {
+                    if (onEmptyTrash) onEmptyTrash();
+                  }
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-red)',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: 0
+                }}
+              >
+                <Trash2 size={13} strokeWidth={2} />
+                <span>ล้างถังขยะทั้งหมด ({trashList.length})</span>
+              </button>
+            ) : <div />}
+
+            <button
+              type="button"
+              onClick={() => setShowTrashModal(false)}
+              className="btn-secondary"
+              style={{ padding: '6px 18px', fontSize: '0.8rem' }}
+            >
+              ปิดหน้าต่าง
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>
 );
 }
