@@ -15,6 +15,7 @@ export default function WritersRoomTab({
   onPermanentDeleteSeries,
   onEmptyTrash,
   onOpenCharacterBible,
+  onAddCharacter,
   activeSubTab,
   onSubTabChange,
   onGoHome,
@@ -226,6 +227,7 @@ export default function WritersRoomTab({
           <NovelStudioEditor
             series={activeSeries}
             onUpdateSeries={onUpdateSeries}
+            onAddCharacter={onAddCharacter}
             onConvertToScreenplay={(chapter) => {
               setSubTab('screenplay');
             }}

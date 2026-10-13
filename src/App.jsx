@@ -89,6 +89,14 @@ export default function App() {
     setSeriesList(prev => prev.map(s => s.id === updatedSeries.id ? updatedSeries : s));
   };
 
+  const handleAddCharacterToActiveSeries = (newChar) => {
+    const updatedSeries = {
+      ...activeSeries,
+      characters: [...(activeSeries.characters || []), newChar]
+    };
+    handleUpdateSeries(updatedSeries);
+  };
+
   // Soft Delete: Move to Trash for 7 days
   const handleSoftDeleteSeries = (deletedId) => {
     if (seriesList.length <= 1) {
@@ -181,6 +189,7 @@ export default function App() {
             onPermanentDeleteSeries={handlePermanentDeleteSeries}
             onEmptyTrash={handleEmptyTrash}
             onOpenCharacterBible={() => navigate('/characters', { id: activeSeries.id })}
+            onAddCharacter={handleAddCharacterToActiveSeries}
             activeSubTab={writersSubTab}
             onSubTabChange={(sub) => {
               if (sub === 'novel') navigate('/novel', { id: activeSeries.id });
@@ -196,7 +205,9 @@ export default function App() {
 
         {activeTab === 'character' && (
           <CharacterBibleTab
-            characters={activeSeries.characters}
+            characters={activeSeries.characters || []}
+            series={activeSeries}
+            onAddCharacter={handleAddCharacterToActiveSeries}
           />
         )}
 

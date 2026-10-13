@@ -12,9 +12,12 @@ import {
   UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink, Home
 } from 'lucide-react';
 
+import AddCharacterModal from './AddCharacterModal';
+
 export default function NovelStudioEditor({
   series,
   onUpdateSeries,
+  onAddCharacter,
   onConvertToScreenplay,
   onOpenSeriesSettings,
   onOpenCharacterBible,
@@ -214,6 +217,21 @@ export default function NovelStudioEditor({
   const [newCharRole, setNewCharRole] = useState('');
   const [newCharTraits, setNewCharTraits] = useState('');
   const [newCharVoice, setNewCharVoice] = useState('');
+
+  // Handle save new character from AddCharacterModal
+  const handleSaveNewCharacter = (newChar) => {
+    if (onAddCharacter) {
+      onAddCharacter(newChar);
+    } else if (onUpdateSeries) {
+      onUpdateSeries({
+        ...series,
+        characters: [...(series.characters || []), newChar]
+      });
+    }
+    setTaggedCharacterIds(prev => [...prev, newChar.id]);
+    setCharSuccessNotice(`เพิ่มตัวละคร "${newChar.name.split('/')[0]}" ในนิยายเรียบร้อยแล้ว`);
+    setTimeout(() => setCharSuccessNotice(''), 4000);
+  };
 
   // Sync to Parent
   const syncSeriesData = (updatedChapters, updatedVolumes = volumes) => {
@@ -3862,6 +3880,14 @@ export default function NovelStudioEditor({
           </div>
         </div>
       )}
+
+      {/* ADD CHARACTER MODAL (OPENROUTER AI) */}
+      <AddCharacterModal
+        isOpen={showNewCharacterModal}
+        onClose={() => setShowNewCharacterModal(false)}
+        series={series}
+        onSaveCharacter={handleSaveNewCharacter}
+      />
 
     </div>
   );

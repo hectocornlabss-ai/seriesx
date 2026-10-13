@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
-import { Lock, Unlock, Sliders, Volume2, ShieldCheck, Sparkles, User, RefreshCw, Eye, Activity, HeartPulse, Layers, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Unlock, Sliders, Volume2, ShieldCheck, Sparkles, User, RefreshCw, Eye, Activity, HeartPulse, Layers, CheckCircle2, UserPlus, Plus } from 'lucide-react';
+import AddCharacterModal from './AddCharacterModal';
 
-export default function CharacterBibleTab({ characters }) {
-  const [selectedCharId, setSelectedCharId] = useState(characters[0].id);
+export default function CharacterBibleTab({ characters = [], series = null, onAddCharacter }) {
+  const [selectedCharId, setSelectedCharId] = useState(characters[0]?.id);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [isSeedLocked, setIsSeedLocked] = useState(true);
   const [loraWeight, setLoraWeight] = useState(0.88);
   const [playingVoice, setPlayingVoice] = useState(false);
 
-  const character = characters.find(c => c.id === selectedCharId) || characters[0];
+  // Sync if character list changes
+  useEffect(() => {
+    if (!characters.some(c => c.id === selectedCharId) && characters.length > 0) {
+      setSelectedCharId(characters[0].id);
+    }
+  }, [characters, selectedCharId]);
+
+  const character = characters.find(c => c.id === selectedCharId) || characters[0] || {};
 
   const [facs, setFacs] = useState({
     browInnerRaiser: character.facsControls?.browInnerRaiser ?? 0.85,
@@ -39,7 +48,7 @@ export default function CharacterBibleTab({ characters }) {
         flexWrap: 'wrap',
         gap: '16px'
       }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           {characters.map(char => {
             const isSelected = char.id === selectedCharId;
             return (
@@ -84,6 +93,28 @@ export default function CharacterBibleTab({ characters }) {
               </button>
             );
           })}
+
+          {/* Add New Character Button (OpenRouter AI) */}
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            id="btn-add-character-bible"
+            className="btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 18px',
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              boxShadow: 'var(--shadow-teal-btn)',
+              whiteSpace: 'nowrap'
+            }}
+            title="เพิ่มตัวละครใหม่ในเรื่องนี้ด้วย OpenRouter AI"
+          >
+            <UserPlus size={16} strokeWidth={2.5} />
+            <span>+ เพิ่มตัวละคร (OpenRouter AI)</span>
+          </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -104,10 +135,22 @@ export default function CharacterBibleTab({ characters }) {
             }}
           >
             {isSeedLocked ? <Lock size={15} strokeWidth={2} /> : <Unlock size={15} strokeWidth={2} />}
-            <span>{isSeedLocked ? `Actor Seed Locked (${character.actorSeed})` : 'Seed Unlocked'}</span>
+            <span>{isSeedLocked ? `Actor Seed Locked (${character?.actorSeed || 'Locked'})` : 'Seed Unlocked'}</span>
           </button>
         </div>
       </div>
+
+      {/* Modal Add Character */}
+      <AddCharacterModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        series={series}
+        onSaveCharacter={(newChar) => {
+          if (onAddCharacter) onAddCharacter(newChar);
+          setSelectedCharId(newChar.id);
+          if (newChar.facsControls) setFacs(newChar.facsControls);
+        }}
+      />
 
       {/* Main Character Bible Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>
