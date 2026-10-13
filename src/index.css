@@ -237,3 +237,148 @@ h1, h2, h3, h4, .font-display {
 .animate-fade-in {
   animation: floatIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ========================================================
+   GOOGLE DOCS STYLE NOVEL STUDIO ENGINE
+   ======================================================== */
+.googledocs-sheet {
+  background: #FFFFFF;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04), 0 16px 40px -8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(220, 215, 205, 0.6);
+  padding: 56px 64px;
+  min-height: 920px;
+  color: #24201C;
+  font-size: 1.05rem;
+  line-height: 2.15;
+  letter-spacing: 0.015em;
+  outline: none;
+  word-break: break-word;
+  transition: box-shadow 0.2s;
+}
+
+.googledocs-sheet:focus {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 24px 50px -10px rgba(11, 74, 81, 0.12), 0 0 0 1.5px var(--teal-primary);
+}
+
+.googledocs-sheet p {
+  margin-bottom: 1.25em;
+  text-indent: 2.2em;
+}
+
+.googledocs-sheet h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  margin: 1.2em 0 0.6em 0;
+  color: var(--teal-primary);
+  text-indent: 0;
+  line-height: 1.3;
+}
+
+.googledocs-sheet h2 {
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin: 1em 0 0.5em 0;
+  color: #1D2425;
+  text-indent: 0;
+  line-height: 1.35;
+}
+
+.googledocs-sheet h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0.8em 0 0.4em 0;
+  color: #374151;
+  text-indent: 0;
+}
+
+.googledocs-sheet blockquote {
+  border-left: 3.5px solid var(--teal-primary);
+  padding: 8px 16px;
+  margin: 1.2em 0;
+  background: rgba(11, 74, 81, 0.04);
+  border-radius: 0 8px 8px 0;
+  color: #334155;
+  font-style: italic;
+  text-indent: 0;
+}
+
+.googledocs-sheet hr {
+  border: none;
+  border-top: 1.5px dashed #D1C9BE;
+  margin: 28px 0;
+}
+
+/* Toolbar Buttons */
+.gdoc-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+
+.gdoc-tool-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.gdoc-tool-btn.active {
+  background: var(--teal-subtle);
+  color: var(--teal-primary);
+  border-color: var(--teal-border);
+}
+
+.gdoc-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-subtle);
+  margin: 0 4px;
+  align-self: center;
+}
+
+/* Ruler bar */
+.googledocs-ruler {
+  height: 20px;
+  background: #EDE8DE;
+  border-radius: 6px 6px 0 0;
+  border: 1px solid rgba(220, 215, 205, 0.8);
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.googledocs-ruler-tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background: #A89F91;
+}
+
+/* Chapter Cut Banner inside Document */
+.chapter-cut-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 32px 0;
+  padding: 10px 18px;
+  background: #F4EFEB;
+  border: 1.5px dashed var(--teal-primary);
+  border-radius: 8px;
+  color: var(--teal-primary);
+  font-weight: 700;
+  font-size: 0.88rem;
+  user-select: none;
+  text-indent: 0 !important;
+}
+

@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   BookOpen, Plus, Trash2, Edit3, Sparkles, Feather, FileText, 
   CheckCircle2, Wand2, RefreshCw, MessageSquare, Zap, Flame, 
   Compass, ArrowRight, Save, Clock, Sliders, FolderPlus, Layers,
   ChevronDown, Check, AlertCircle, Play, Maximize2, Minimize2,
   CornerDownRight, CheckSquare, Square, MessageSquarePlus, Quote,
-  Bold, Italic, Underline, ListFilter, User, Send, Undo2, Redo2,
-  Search, Eye, HelpCircle
+  Bold, Italic, Underline, Strikethrough, Highlighter, Palette, Type,
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered,
+  Indent, Outdent, RemoveFormatting, Undo2, Redo2, Search, Replace,
+  Scissors, Split, Ruler, X, ChevronUp, Copy, CheckCheck, Eye
 } from 'lucide-react';
 
 export default function NovelStudioEditor({
@@ -118,18 +120,47 @@ export default function NovelStudioEditor({
     }
   ];
 
+  // Primary States
   const [volumes, setVolumes] = useState(defaultVolumes);
   const [chapters, setChapters] = useState(defaultChapters);
   const [selectedVolumeId, setSelectedVolumeId] = useState(defaultVolumes[0].id);
   const [activeChapterId, setActiveChapterId] = useState(defaultChapters[0].id);
-  
+
+  // Active References
+  const currentChapter = chapters.find(c => c.id === activeChapterId) || chapters[0] || {};
+  const currentVolume = volumes.find(v => v.id === selectedVolumeId) || volumes[0] || {};
+  const chapterComments = currentChapter.comments || [];
+  const filteredChapters = chapters.filter(c => !c.volumeId || c.volumeId === selectedVolumeId);
+
+  // Editor Ref & Auto-Save
+  const editorRef = useRef(null);
+  const [saveStatus, setSaveStatus] = useState('บันทึกอัตโนมัติแล้ว');
+  const [currentWordCount, setCurrentWordCount] = useState(currentChapter.wordCount || 0);
+  const [currentCharCount, setCurrentCharCount] = useState(currentChapter.content ? currentChapter.content.length : 0);
+
   // View Modes & Sidebar State
-  const [focusMode, setFocusMode] = useState(false); // Zen / Focus Mode
-  const [rightPanelTab, setRightPanelTab] = useState('comments'); // 'comments' | 'ai'
+  const [focusMode, setFocusMode] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState('comments'); // 'comments' | 'ai' | 'split'
   const [activeCommentId, setActiveCommentId] = useState(null);
-  const [commentFilter, setCommentFilter] = useState('all'); // 'all' | 'active' | 'resolved'
-  
-  // New Comment Form State
+  const [commentFilter, setCommentFilter] = useState('all');
+
+  // Toolbar Formatting States
+  const [currentFont, setCurrentFont] = useState('Sarabun');
+  const [currentFontSize, setCurrentFontSize] = useState(16);
+  const [currentHeading, setCurrentHeading] = useState('p');
+  const [showTextColorMenu, setShowTextColorMenu] = useState(false);
+  const [showHighlightMenu, setShowHighlightMenu] = useState(false);
+  const [showFontMenu, setShowFontMenu] = useState(false);
+  const [showHeadingMenu, setShowHeadingMenu] = useState(false);
+  const [activeTextColor, setActiveTextColor] = useState('#1D2425');
+  const [activeHighlightColor, setActiveHighlightColor] = useState('transparent');
+
+  // Find & Replace
+  const [showFindReplace, setShowFindReplace] = useState(false);
+  const [findKeyword, setFindKeyword] = useState('');
+  const [replaceKeyword, setReplaceKeyword] = useState('');
+
+  // Comments System Form
   const [newCommentText, setNewCommentText] = useState('');
   const [newCommentTarget, setNewCommentTarget] = useState('');
   const [newCommentAuthor, setNewCommentAuthor] = useState('ผู้กำกับ ธีรภัทร (Director)');
@@ -145,15 +176,15 @@ export default function NovelStudioEditor({
   const [showAddVolumeModal, setShowAddVolumeModal] = useState(false);
   const [newVolumeTitle, setNewVolumeTitle] = useState('');
 
-  // Active chapter and volume references
-  const currentChapter = chapters.find(c => c.id === activeChapterId) || chapters[0] || {};
-  const currentVolume = volumes.find(v => v.id === selectedVolumeId) || volumes[0] || {};
-  const chapterComments = currentChapter.comments || [];
-  
-  // Filter chapters for current volume
-  const filteredChapters = chapters.filter(c => !c.volumeId || c.volumeId === selectedVolumeId);
+  // AI Episode & Chapter Splitter States
+  const [showAiSplitModal, setShowAiSplitModal] = useState(false);
+  const [splitFormat, setSplitFormat] = useState('vertical'); // 'vertical' (60-90s) | 'webnovel' (1500-2500 words) | 'scenes'
+  const [targetSplitCount, setTargetSplitCount] = useState(3);
+  const [splitPacing, setSplitPacing] = useState('high-hook');
+  const [isAnalyzingSplit, setIsAnalyzingSplit] = useState(false);
+  const [splitResults, setSplitResults] = useState([]);
 
-  // Sync update to parent
+  // Sync to Parent
   const syncSeriesData = (updatedChapters, updatedVolumes = volumes) => {
     if (onUpdateSeries) {
       onUpdateSeries({
@@ -164,17 +195,146 @@ export default function NovelStudioEditor({
     }
   };
 
-  const handleUpdateContent = (newText) => {
-    const wordCount = newText.trim() ? newText.trim().split(/\s+/).length : 0;
-    const updated = chapters.map(ch => ch.id === currentChapter.id ? {
-      ...ch,
-      content: newText,
-      wordCount: wordCount
-    } : ch);
-    setChapters(updated);
-    syncSeriesData(updated);
+  // Convert plain text to clean HTML paragraphs
+  const formatTextToHtml = (text) => {
+    if (!text) return '<p><br></p>';
+    if (text.includes('<p>') || text.includes('<div>')) return text;
+    return text.split(/\n\n+/).map(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      if (trimmed === '***') {
+        return '<hr style="border: none; border-top: 1.5px dashed #D1C9BE; margin: 28px 0;" /><p style="text-align: center; color: var(--teal-primary); font-weight: 700; margin: 12px 0; text-indent: 0;">* * *</p>';
+      }
+      return `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">${trimmed.replace(/\n/g, '<br/>')}</p>`;
+    }).join('');
   };
 
+  // Initialize or Switch Chapter in contentEditable
+  useEffect(() => {
+    if (editorRef.current) {
+      const initialHtml = currentChapter.contentHtml || formatTextToHtml(currentChapter.content);
+      editorRef.current.innerHTML = initialHtml;
+      const text = editorRef.current.innerText || '';
+      setCurrentWordCount(text.trim() ? text.trim().split(/\s+/).length : 0);
+      setCurrentCharCount(text.length);
+    }
+  }, [activeChapterId]);
+
+  // Handle Input in contentEditable
+  const handleEditorInput = () => {
+    if (!editorRef.current) return;
+    const html = editorRef.current.innerHTML;
+    const text = editorRef.current.innerText || '';
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    setCurrentWordCount(words);
+    setCurrentCharCount(text.length);
+    setSaveStatus('กำลังบันทึก...');
+
+    const updated = chapters.map(ch => ch.id === currentChapter.id ? {
+      ...ch,
+      content: text,
+      contentHtml: html,
+      wordCount: words
+    } : ch);
+
+    setChapters(updated);
+    syncSeriesData(updated);
+
+    setTimeout(() => {
+      setSaveStatus('บันทึกอัตโนมัติแล้ว');
+    }, 600);
+  };
+
+  // Google Docs Command Runner
+  const executeCommand = (cmd, value = null) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    document.execCommand('styleWithCSS', false, true);
+    document.execCommand(cmd, false, value);
+    handleEditorInput();
+  };
+
+  // Font Size Application
+  const applyFontSize = (sizePt) => {
+    setCurrentFontSize(sizePt);
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const span = document.createElement('span');
+    span.style.fontSize = `${sizePt}pt`;
+    span.appendChild(range.extractContents());
+    range.insertNode(span);
+    handleEditorInput();
+  };
+
+  // Change Font Size by delta (+/-)
+  const stepFontSize = (delta) => {
+    const newSize = Math.max(10, Math.min(48, currentFontSize + delta));
+    applyFontSize(newSize);
+  };
+
+  // Apply Text Color
+  const applyTextColor = (color) => {
+    setActiveTextColor(color);
+    executeCommand('foreColor', color);
+    setShowTextColorMenu(false);
+  };
+
+  // Apply Highlight Color
+  const applyHighlightColor = (color) => {
+    setActiveHighlightColor(color);
+    if (color === 'transparent') {
+      executeCommand('removeFormat');
+    } else {
+      executeCommand('hiliteColor', color);
+    }
+    setShowHighlightMenu(false);
+  };
+
+  // Apply Font Family
+  const applyFontFamily = (fontName) => {
+    setCurrentFont(fontName);
+    executeCommand('fontName', fontName);
+    setShowFontMenu(false);
+  };
+
+  // Apply Heading / Style
+  const applyHeadingStyle = (tag) => {
+    setCurrentHeading(tag);
+    executeCommand('formatBlock', tag);
+    setShowHeadingMenu(false);
+  };
+
+  // Capture selection for comments
+  const handleCaptureSelectionForComment = () => {
+    const sel = window.getSelection();
+    const text = sel ? sel.toString().trim() : '';
+    setNewCommentTarget(text || "ทั้งย่อหน้า / บริบทปัจจุบัน");
+    setShowAddCommentForm(true);
+    setRightPanelTab('comments');
+  };
+
+  // Insert Scene Divider
+  const insertSceneBreak = () => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const dividerHtml = `<hr style="border: none; border-top: 1.5px dashed #D1C9BE; margin: 28px 0;" /><p style="text-align: center; color: var(--teal-primary); font-weight: 700; margin: 12px 0; text-indent: 0;">* * *</p><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;"><br></p>`;
+    document.execCommand('insertHTML', false, dividerHtml);
+    handleEditorInput();
+  };
+
+  // Insert Character Dialogue Template
+  const insertDialogueQuote = () => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const dialogueHtml = `<p style="margin: 14px 0; padding-left: 14px; border-left: 3px solid var(--teal-primary); color: #1E293B; text-indent: 0; font-style: normal;">"..."</p><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;"><br></p>`;
+    document.execCommand('insertHTML', false, dialogueHtml);
+    handleEditorInput();
+  };
+
+  // Update Title
   const handleUpdateTitle = (newTitle) => {
     const updated = chapters.map(ch => ch.id === currentChapter.id ? {
       ...ch,
@@ -195,6 +355,7 @@ export default function NovelStudioEditor({
       status: "กำลังเขียน (Draft)",
       wordCount: 0,
       content: "",
+      contentHtml: "<p><br></p>",
       notes: "โครงเรื่องย่อสำหรับตอนนี้...",
       comments: []
     };
@@ -218,7 +379,7 @@ export default function NovelStudioEditor({
     }
   };
 
-  // Comments Management
+  // Add Comment
   const handleAddComment = (e) => {
     e.preventDefault();
     if (!newCommentText.trim()) return;
@@ -254,6 +415,7 @@ export default function NovelStudioEditor({
     setRightPanelTab('comments');
   };
 
+  // Toggle Resolve Comment
   const handleToggleResolveComment = (commentId) => {
     const updatedChapters = chapters.map(ch => {
       if (ch.id === currentChapter.id) {
@@ -271,6 +433,7 @@ export default function NovelStudioEditor({
     syncSeriesData(updatedChapters);
   };
 
+  // Add Reply
   const handleAddReply = (commentId) => {
     const text = replyInputMap[commentId];
     if (!text || !text.trim()) return;
@@ -300,41 +463,154 @@ export default function NovelStudioEditor({
     setReplyInputMap(prev => ({ ...prev, [commentId]: '' }));
   };
 
-  // AI Assistant Actions
+  // Find and Replace Handler
+  const handleExecuteReplace = (replaceAll = false) => {
+    if (!findKeyword.trim() || !editorRef.current) return;
+    const currentHtml = editorRef.current.innerHTML;
+    let newHtml = '';
+    if (replaceAll) {
+      const regex = new RegExp(findKeyword, 'g');
+      newHtml = currentHtml.replace(regex, replaceKeyword);
+    } else {
+      newHtml = currentHtml.replace(findKeyword, replaceKeyword);
+    }
+    editorRef.current.innerHTML = newHtml;
+    handleEditorInput();
+  };
+
+  // AI Co-writer Actions
   const handleAiAction = (actionType) => {
     setIsAiGenerating(true);
     setAiNotice('');
 
     setTimeout(() => {
       setIsAiGenerating(false);
-      let addition = '';
+      let additionHtml = '';
 
       if (actionType === 'continue') {
-        addition = `\n\nความเงียบเข้าปกคลุมชั่วขณะ ได้ยินเพียงเสียงหยดน้ำที่ไหลรินตามผิวกระจก ทาดาโอะหันกลับมาสบตากับเธออีกครั้ง แววตาที่เคยมั่นใจกลับมีความลังเลแฝงอยู่ลึกๆ "คุณแน่ใจเหรอว่าพร้อมจะรู้ความจริงทั้งหมด... แม้ว่ามันอาจทำลายทุกสิ่งที่คุณเชื่อมาทั้งชีวิต?" รินสูดลมหายใจลึก กำหมัดแน่นจนเล็บจิกเนื้อ`;
-        handleUpdateContent(currentChapter.content + addition);
+        additionHtml = `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">ความเงียบเข้าปกคลุมชั่วขณะ ได้ยินเพียงเสียงหยดน้ำที่ไหลรินตามผิวกระจก ทาดาโอะหันกลับมาสบตากับเธออีกครั้ง แววตาที่เคยมั่นใจกลับมีความลังเลแฝงอยู่ลึกๆ "คุณแน่ใจเหรอว่าพร้อมจะรู้ความจริงทั้งหมด... แม้ว่ามันอาจทำลายทุกสิ่งที่คุณเชื่อมาทั้งชีวิต?" รินสูดลมหายใจลึก กำหมัดแน่นจนเล็บจิกเนื้อ</p>`;
         setAiNotice('AI ช่วยเขียนเนื้อเรื่องต่อตามโครงสร้างดราม่าเรียบร้อยแล้ว');
       } else if (actionType === 'cliffhanger') {
-        addition = `\n\nทันใดนั้น เสียงโทรศัพท์ฉุกเฉินบนโต๊ะทำงานที่ควรจะตัดสัญญาณไปแล้วกลับดังขึ้น! หน้าจอแสดงชื่อผู้โทรเข้าที่ทำให้เลือดในกายของรินเย็นเฉียบ..."พ่อ" ทาดาโอะหันขวับมามองเธอทันทีด้วยสายตาที่ยากจะคาดเดา!`;
-        handleUpdateContent(currentChapter.content + addition);
+        additionHtml = `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">ทันใดนั้น เสียงโทรศัพท์ฉุกเฉินบนโต๊ะทำงานที่ควรจะตัดสัญญาณไปแล้วกลับดังขึ้น! หน้าจอแสดงชื่อผู้โทรเข้าที่ทำให้เลือดในกายของรินเย็นเฉียบ..."พ่อ" ทาดาโอะหันขวับมามองเธอทันทีด้วยสายตาที่ยากจะคาดเดา!</p>`;
         setAiNotice('AI แทรกจุดทิ้งท้าย Cliffhanger (กระชากอารมณ์ท้ายตอน) สำเร็จ');
       } else if (actionType === 'atmosphere') {
-        addition = `\n\nบรรยากาศในห้องเย็นยะเยือกด้วยอุณหภูมิของเครื่องปรับอากาศที่ตัดสลับกับไอร้อนจากพายุฝนภายนอก กลิ่นไอความชื้นของฝนและกลิ่นควันจากเอกสารที่มอดไหม้ ผสานกับความกดดันที่บีบคั้นจนแทบหายใจไม่ออก แสงฟ้าแลบสาดประกายวาบเป็นระยะ เผยให้เห็นเงามืดทอดผ่านใบหน้าของทั้งสอง`;
-        handleUpdateContent(currentChapter.content + addition);
+        additionHtml = `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">บรรยากาศในห้องเย็นยะเยือกด้วยอุณหภูมิของเครื่องปรับอากาศที่ตัดสลับกับไอร้อนจากพายุฝนภายนอก กลิ่นไอความชื้นของฝนและกลิ่นควันจากเอกสารที่มอดไหม้ ผสานกับความกดดันที่บีบคั้นจนแทบหายใจไม่ออก แสงฟ้าแลบสาดประกายวาบเป็นระยะ เผยให้เห็นเงามืดทอดผ่านใบหน้าของทั้งสอง</p>`;
         setAiNotice('AI บรรยายบรรยากาศและประสาทสัมผัส (Sensory Immersion) เพิ่มเติมแล้ว');
       } else if (actionType === 'dialogue') {
-        addition = `\n\n"คุณคิดว่าตัวเองเป็นใคร ทาดาโอะ?" รินเค้นเสียงลอดไรฟัน "พระเจ้าที่กุมชะตาชีวิตคนอื่นงั้นเหรอ?"\n"ผมไม่ใช่พระเจ้า..." ทาดาโอะก้าวเข้ามาจนปลายจมูกแทบชิดกัน "แต่ในตึกนี้ ผมคือคนที่ตัดสินว่าใครจะได้อยู่ต่อ หรือใครต้องหายไป"`;
-        handleUpdateContent(currentChapter.content + addition);
+        additionHtml = `<p style="margin: 14px 0; padding-left: 14px; border-left: 3px solid var(--teal-primary); color: #1E293B; text-indent: 0;">"คุณคิดว่าตัวเองเป็นใคร ทาดาโอะ?" รินเค้นเสียงลอดไรฟัน "พระเจ้าที่กุมชะตาชีวิตคนอื่นงั้นเหรอ?"</p><p style="margin: 14px 0; padding-left: 14px; border-left: 3px solid var(--teal-primary); color: #1E293B; text-indent: 0;">"ผมไม่ใช่พระเจ้า..." ทาดาโอะก้าวเข้ามาจนปลายจมูกแทบชิดกัน "แต่ในตึกนี้ ผมคือคนที่ตัดสินว่าใครจะได้อยู่ต่อ หรือใครต้องหายไป"</p>`;
         setAiNotice('AI ขัดเกลาบทพูดให้เชือดเฉือนและกระชับคมคายเรียบร้อยแล้ว');
       } else if (actionType === 'custom') {
         if (!customPrompt.trim()) return;
-        addition = `\n\n[เนื้อหาที่ AI แต่งตามคำสั่ง: "${customPrompt}"]\nรินหันไปมองตามทิศทางนั้นทันที สิ่งที่ปรากฏอยู่เบื้องหน้าทำให้แผนการทั้งหมดที่เธอเตรียมมาต้องพลิกผัน ทาดาโอะไม่รอช้า เขาคว้าสิ่งนั้นขึ้นมาแล้วจ้องตรงมาที่เธอ "นี่ใช่ไหม... สิ่งที่คุณตามหามาตลอด?"`;
-        handleUpdateContent(currentChapter.content + addition);
+        additionHtml = `<blockquote style="border-left: 3.5px solid var(--teal-primary); padding: 8px 16px; margin: 1.2em 0; background: rgba(11, 74, 81, 0.04); font-style: italic;">[เนื้อหาที่ AI แต่งตามคำสั่ง: "${customPrompt}"]</blockquote><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">รินหันไปมองตามทิศทางนั้นทันที สิ่งที่ปรากฏอยู่เบื้องหน้าทำให้แผนการทั้งหมดที่เธอเตรียมมาต้องพลิกผัน ทาดาโอะไม่รอช้า เขาคว้าสิ่งนั้นขึ้นมาแล้วจ้องตรงมาที่เธอ "นี่ใช่ไหม... สิ่งที่คุณตามหามาตลอด?"</p>`;
         setCustomPrompt('');
         setAiNotice('AI ปฏิบัติตามคำสั่งการแต่งนิยายเรียบร้อยแล้ว');
       }
 
+      if (editorRef.current && additionHtml) {
+        editorRef.current.innerHTML += additionHtml;
+        handleEditorInput();
+      }
+
       setTimeout(() => setAiNotice(''), 4000);
-    }, 800);
+    }, 700);
+  };
+
+  // AI Chapter & Episode Splitter Generator
+  const handleGenerateEpisodeSplit = () => {
+    setIsAnalyzingSplit(true);
+    setSplitResults([]);
+
+    setTimeout(() => {
+      setIsAnalyzingSplit(false);
+      
+      const count = targetSplitCount || 3;
+      const results = [
+        {
+          epNumber: 1,
+          title: "ตอนที่ 1: สัญญาเลือดในคืนพายุคลั่ง",
+          hook: "ภาพเปิดห้องประชุมชั้น 48 ท่ามกลางพายุฝน + แฟ้มคดีลับไหม้เกรียม",
+          conflict: "รินนำหลักฐานขู่แบล็กเมล์ทาดาโอะ แต่ถูกประธานหนุ่มตลบหลังด้วยความลับของตระกูล",
+          cliffhanger: "สัญญาณเตือนภัยฉุกเฉินดับอาคารทั้งตึก + ประตูอัตโนมัติล็อกตาย!",
+          estWords: splitFormat === 'vertical' ? 750 : 2100,
+          estDuration: splitFormat === 'vertical' ? "75 วินาที" : "4-5 นาที",
+          snippet: "สายฝนยามค่ำคืนกระหน่ำซัดกระจกนิรภัยบานยักษ์... 'ถ้าคืนนี้คุณไม่เซ็นรับรองความบริสุทธิ์ของพ่อฉัน พรุ่งนี้เช้าข้อมูลชุดนี้จะถูกส่งตรงไปทุกสำนักข่าว!'"
+        },
+        {
+          epNumber: 2,
+          title: "ตอนที่ 2: ในเงามืดของมือสังหาร",
+          hook: "เสียงสลักปืนกลปลดล็อกที่ช่องบันไดหนีไฟในความมืดสนิท",
+          conflict: "ทั้งคู่ถูกไล่ล่าโดยกลุ่มมือสังหารนิรนามที่ต้องการชิงเซรั่มและทำลายหลักฐาน",
+          cliffhanger: "ทาดาโอะดึงรินเข้ามาจูบหลบวิถีกระสุน ก่อนกระซิบว่ามีหนอนบ่อนไส้เป็นคนใกล้ตัวเธอ!",
+          estWords: splitFormat === 'vertical' ? 820 : 2300,
+          estDuration: splitFormat === 'vertical' ? "85 วินาที" : "5 นาที",
+          snippet: "สัญญาณเตือนภัยสีแดงสาดส่องเป็นจังหวะ ย้อมทั้งห้องประชุมให้กลายเป็นสีเลือด... 'ถ้าคุณอยากรอดตายออกไปจากตึกนี้ อย่าส่งเสียงดัง!'"
+        },
+        {
+          epNumber: 3,
+          title: "ตอนที่ 3: กับดักหัวใจและไฟแค้น",
+          hook: "รินพบตราสัญลักษณ์ของพ่อตัวเองอยู่บนด้ามมีดของหัวหน้ามือสังหาร",
+          conflict: "ความจริงเปิดเผยว่าพ่อของรินอาจไม่ได้เป็นเหยื่อ แต่เป็นผู้วางแผนสังหารตั้งแต่ต้น",
+          cliffhanger: "ทาดาโอะยื่นปืนให้รินแล้วสั่ง: 'ยิงผมสิ ถ้านั่นจะทำให้คุณหายแค้น... หรือไม่ก็ยอมเป็นผู้หญิงของผม!'",
+          estWords: splitFormat === 'vertical' ? 880 : 2500,
+          estDuration: splitFormat === 'vertical' ? "90 วินาที" : "6 นาที",
+          snippet: "ความจริงที่สะท้อนผ่านกระจกเงาแตกร้าว... ดวงตาของรินสั่นไหวเมื่อนิ้วชี้ของเธอแตะเข้ากับไกปืนที่เย็นเยียบ"
+        }
+      ];
+
+      if (count > 3) {
+        results.push({
+          epNumber: 4,
+          title: "ตอนที่ 4: การเปิดตัวทายาทตัวจริง",
+          hook: "งานแถลงข่าวควบรวมกิจการหมื่นล้าน รินก้าวขึ้นเวทีในฐานะคู่หมั้นลับ",
+          conflict: "การปะทะคารมชิงไหวชิงพริบกลางงานกาล่าเพื่อหาตัวผู้ถือหุ้นใหญ่ตัวจริง",
+          cliffhanger: "พินัยกรรมฉบับที่แท้จริงปรากฏชื่อริน ลลิตา เป็นผู้ถือหุ้น 51% แต่เพียงผู้เดียว!",
+          estWords: splitFormat === 'vertical' ? 790 : 2200,
+          estDuration: splitFormat === 'vertical' ? "80 วินาที" : "5 นาที",
+          snippet: "แสงแฟลชสาดส่องกระทบใบหน้าของทั้งสอง ทาดาโอะกระตุกยิ้มมุมปากอย่างเยือกเย็น 'ยินดีต้อนรับสู่สนามรบตัวจริง คุณผู้หญิง'"
+        });
+      }
+
+      setSplitResults(results);
+    }, 900);
+  };
+
+  // Apply Generated Episodes to Chapters List
+  const handleApplySplitToChapters = () => {
+    if (!splitResults.length) return;
+
+    const newGeneratedChapters = splitResults.map((item, idx) => ({
+      id: `ch-split-${Date.now()}-${idx}`,
+      number: chapters.length + idx + 1,
+      volumeId: selectedVolumeId,
+      title: item.title,
+      status: "กำลังเขียน (Draft)",
+      wordCount: item.estWords,
+      content: `${item.snippet}\n\n[3s Hook]: ${item.hook}\n[ปมหลัก]: ${item.conflict}\n[Cliffhanger]: ${item.cliffhanger}`,
+      contentHtml: `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">${item.snippet}</p><div class="chapter-cut-marker">3-Second Hook: ${item.hook}</div><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">${item.conflict}</p><div class="chapter-cut-marker">จุดตัด Cliffhanger ท้ายตอน: ${item.cliffhanger}</div>`,
+      notes: `Hook: ${item.hook} | Cliffhanger: ${item.cliffhanger}`,
+      comments: []
+    }));
+
+    const updated = [...chapters, ...newGeneratedChapters];
+    setChapters(updated);
+    syncSeriesData(updated);
+    setShowAiSplitModal(false);
+    setActiveChapterId(newGeneratedChapters[0].id);
+    alert(`AI สร้างตอนใหม่ ${newGeneratedChapters.length} ตอนลงในสารบัญเรียบร้อยแล้ว`);
+  };
+
+  // Insert Chapter Cut Banners into Current Document
+  const handleInsertCutMarkersToDoc = () => {
+    if (!editorRef.current || !splitResults.length) return;
+    
+    let markersHtml = '';
+    splitResults.forEach((ep) => {
+      markersHtml += `<div class="chapter-cut-marker">=== [จุดตัดจบตอน: ${ep.title} | Cliffhanger: ${ep.cliffhanger}] ===</div><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;"><br></p>`;
+    });
+
+    editorRef.current.innerHTML += markersHtml;
+    handleEditorInput();
+    setShowAiSplitModal(false);
   };
 
   // Filtered comments
@@ -345,14 +621,13 @@ export default function NovelStudioEditor({
   });
 
   const activeCommentsCount = chapterComments.filter(c => !c.resolved).length;
-  const totalWords = chapters.reduce((acc, c) => acc + (c.wordCount || 0), 0);
-  const estimatedPages = Math.ceil((currentChapter.wordCount || 0) / 350) || 1;
+  const estimatedPages = Math.ceil(currentWordCount / 350) || 1;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       
       {/* 1. TOP DOCK: NOVEL INFO, STATS & FOCUS MODE TOGGLE */}
-      <div className="clay-card" style={{ padding: '16px 22px' }}>
+      <div className="clay-card" style={{ padding: '14px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -373,11 +648,11 @@ export default function NovelStudioEditor({
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span className="badge badge-teal">Google Docs Style Novel Editor</span>
+                <span className="badge badge-teal">Google Docs Novel Engine</span>
                 <span className="badge badge-sand">{currentVolume.title}</span>
                 {activeCommentsCount > 0 && (
                   <span className="badge badge-teal-subtle" style={{ color: 'var(--teal-primary)', fontWeight: 700 }}>
-                    {activeCommentsCount} ข้อเสนอแนะยังไม่แก้
+                    {activeCommentsCount} ข้อเสนอแนะรอตรวจ
                   </span>
                 )}
               </div>
@@ -400,10 +675,26 @@ export default function NovelStudioEditor({
               alignItems: 'center',
               gap: '12px'
             }}>
-              <span>ตอนนี้: <strong style={{ color: 'var(--text-main)' }}>{(currentChapter.wordCount || 0).toLocaleString()} คำ</strong></span>
+              <span>ตอนนี้: <strong style={{ color: 'var(--text-main)' }}>{currentWordCount.toLocaleString()} คำ</strong></span>
+              <span>ตัวอักษร: <strong style={{ color: 'var(--text-main)' }}>{currentCharCount.toLocaleString()}</strong></span>
               <span>เอกสาร: <strong style={{ color: 'var(--teal-primary)' }}>~{estimatedPages} หน้า A4</strong></span>
-              <span>อ่าน: <strong style={{ color: 'var(--text-main)' }}>{Math.ceil((currentChapter.wordCount || 0) / 250) || 1} นาที</strong></span>
+              <span>อ่าน: <strong style={{ color: 'var(--text-main)' }}>{Math.ceil(currentWordCount / 250) || 1} นาที</strong></span>
             </div>
+
+            {/* AI Chapter Breakdown Quick Button */}
+            <button
+              onClick={() => {
+                setFocusMode(false);
+                setRightPanelTab('split');
+                if (!splitResults.length) handleGenerateEpisodeSplit();
+              }}
+              className="btn-primary"
+              style={{ padding: '6px 14px', fontSize: '0.76rem', background: '#0B4A51' }}
+              title="เปิดระบบ AI ช่วยแบ่งตอนและวางจังหวะ Cliffhanger สำหรับซีรีส์แนวตั้ง"
+            >
+              <Split size={14} strokeWidth={2} />
+              <span>AI ช่วยแบ่งตอน/บท</span>
+            </button>
 
             {/* Focus Mode Button */}
             <button
@@ -422,7 +713,7 @@ export default function NovelStudioEditor({
                 onClick={onOpenSeriesSettings}
                 className="btn-secondary"
                 style={{ padding: '6px 12px', fontSize: '0.76rem' }}
-                title="เปิดหน้าตั้งค่าโครงสร้างซีรีส์และภาพปกแบบเต็มหน้า (ไม่ใช่ Popup)"
+                title="เปิดหน้าตั้งค่าโครงสร้างซีรีส์และภาพปกแบบเต็มหน้า"
               >
                 <Sliders size={14} strokeWidth={2} />
                 <span>ตั้งค่าโครงสร้างซีรีส์</span>
@@ -433,8 +724,8 @@ export default function NovelStudioEditor({
             {onConvertToScreenplay && (
               <button
                 onClick={() => onConvertToScreenplay(currentChapter)}
-                className="btn-primary"
-                style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                className="btn-secondary"
+                style={{ padding: '6px 14px', fontSize: '0.78rem', background: 'var(--bg-raised)', borderColor: 'var(--teal-primary)', color: 'var(--teal-primary)' }}
                 title="แปลงเนื้อหาบทนี้เป็น Beat Sheet บทซีรีส์ 9:16 ทันที"
               >
                 <Play size={14} strokeWidth={2} />
@@ -540,7 +831,7 @@ export default function NovelStudioEditor({
             </div>
 
             {/* Chapter Items List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '600px', paddingRight: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '580px', paddingRight: '4px' }}>
               {filteredChapters.map(ch => {
                 const isActive = ch.id === currentChapter.id;
                 const cmtsCount = (ch.comments || []).length;
@@ -583,247 +874,752 @@ export default function NovelStudioEditor({
               })}
             </div>
 
-            <button
-              onClick={handleAddChapter}
-              className="btn-secondary"
-              style={{ width: '100%', marginTop: '12px', justifyContent: 'center', fontSize: '0.78rem' }}
-            >
-              <Plus size={14} strokeWidth={2} />
-              <span>เพิ่มตอนใหม่ในเล่มนี้</span>
-            </button>
+            {/* Add Chapter / Split Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+              <button
+                onClick={handleAddChapter}
+                className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
+              >
+                <Plus size={14} strokeWidth={2} />
+                <span>เพิ่มตอนใหม่ในเล่มนี้</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowAiSplitModal(true);
+                  if (!splitResults.length) handleGenerateEpisodeSplit();
+                }}
+                className="btn-secondary"
+                style={{ width: '100%', justifyContent: 'center', fontSize: '0.76rem', color: 'var(--teal-primary)', borderColor: 'var(--teal-subtle)' }}
+              >
+                <Sparkles size={13} strokeWidth={2} color="var(--teal-primary)" />
+                <span>AI วิเคราะห์แบ่งตอนอัตโนมัติ</span>
+              </button>
+            </div>
           </div>
         )}
 
         {/* ========================================================
             COLUMN 2: GOOGLE DOCS STYLE LONG-FORM MANUSCRIPT CANVAS
            ======================================================== */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', width: '100%' }}>
           
-          {/* Google Docs Toolbar */}
+          {/* ========================================================
+              FULL GOOGLE DOCS FORMATTING TOOLBAR
+             ======================================================== */}
           <div className="clay-card" style={{
             width: '100%',
-            maxWidth: '850px',
-            padding: '10px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ padding: '5px 8px', fontSize: '0.74rem' }}
-                title="ย้อนกลับ (Undo)"
-              >
-                <Undo2 size={13} strokeWidth={2} />
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ padding: '5px 8px', fontSize: '0.74rem' }}
-                title="ทำซ้ำ (Redo)"
-              >
-                <Redo2 size={13} strokeWidth={2} />
-              </button>
-
-              <div style={{ width: '1px', height: '18px', background: 'var(--border-subtle)', margin: '0 4px' }} />
-
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>ฟอนต์นิยาย: Cordia / Sarabun 16pt</span>
-
-              <div style={{ width: '1px', height: '18px', background: 'var(--border-subtle)', margin: '0 4px' }} />
-
-              <button
-                type="button"
-                onClick={() => handleUpdateContent(currentChapter.content + "\n\n***\n\n")}
-                className="btn-secondary"
-                style={{ padding: '5px 9px', fontSize: '0.72rem' }}
-                title="แทรกจุดตัดฉาก (Scene Break)"
-              >
-                <span>ตัดฉาก ***</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleUpdateContent(currentChapter.content + `\n\n"..."`)}
-                className="btn-secondary"
-                style={{ padding: '5px 9px', fontSize: '0.72rem' }}
-                title="แทรกบรรทัดบทพูดตัวละคร"
-              >
-                <Quote size={12} strokeWidth={2} />
-                <span>บทพูด " "</span>
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {/* Add Comment Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddCommentForm(true);
-                  setRightPanelTab('comments');
-                  setNewCommentTarget("ย่อหน้าปัจจุบัน / ประโยคที่กำลังเขียน");
-                }}
-                className="btn-primary"
-                style={{ padding: '5px 12px', fontSize: '0.75rem' }}
-                title="เพิ่มความคิดเห็นของทีมงานหรือผู้กำกับบนจุดนี้"
-              >
-                <MessageSquarePlus size={14} strokeWidth={2} />
-                <span>+ เพิ่มคอมเมนต์</span>
-              </button>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 600 }}>
-                <CheckCircle2 size={13} strokeWidth={2} />
-                <span>บันทึกอัตโนมัติ</span>
-              </div>
-            </div>
-          </div>
-
-          {/* REALISTIC GOOGLE DOC PAPER SHEET */}
-          <div style={{
-            width: '100%',
-            maxWidth: '850px',
-            background: '#FFFFFF',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
-            border: '1px solid rgba(220, 215, 205, 0.6)',
-            padding: '52px 64px',
-            minHeight: '850px',
+            maxWidth: '860px',
+            padding: '8px 14px',
             display: 'flex',
             flexDirection: 'column',
-            position: 'relative'
+            gap: '8px'
           }}>
-            
-            {/* Top Sheet Header: Document Title & Metadata */}
-            <div style={{ marginBottom: '28px', borderBottom: '1px solid #ECE7DD', paddingBottom: '16px' }}>
-              <input
-                type="text"
-                value={currentChapter.title || ''}
-                onChange={(e) => handleUpdateTitle(e.target.value)}
-                placeholder="ชื่อตอนนิยาย..."
-                style={{
-                  fontSize: '1.45rem',
-                  fontWeight: 800,
-                  color: 'var(--text-main)',
-                  fontFamily: 'var(--font-display)',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  width: '100%',
-                  padding: '2px 0',
-                  borderBottom: '2px solid transparent'
-                }}
-                onFocus={(e) => e.target.style.borderBottom = '2px solid var(--teal-primary)'}
-                onBlur={(e) => e.target.style.borderBottom = '2px solid transparent'}
-              />
+            {/* Row 1: Primary Formatting Tools */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                
+                {/* 1. Undo / Redo (ย้อนกลับ / เดินหน้า) */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('undo'); }}
+                  className="gdoc-tool-btn"
+                  title="ย้อนกลับ (Undo: Ctrl+Z)"
+                >
+                  <Undo2 size={15} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('redo'); }}
+                  className="gdoc-tool-btn"
+                  title="ทำซ้ำ (Redo: Ctrl+Y)"
+                >
+                  <Redo2 size={15} strokeWidth={2} />
+                </button>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                <div>
-                  สังกัด: <strong style={{ color: 'var(--teal-primary)' }}>{currentVolume.title}</strong> &bull;{' '}
-                  สถานะ: <strong style={{ color: 'var(--text-main)' }}>{currentChapter.status}</strong>
+                <div className="gdoc-divider" />
+
+                {/* 2. Heading / Paragraph Styles */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowHeadingMenu(!showHeadingMenu); }}
+                    style={{
+                      height: '28px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-surface)',
+                      fontSize: '0.74rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                      color: 'var(--text-main)',
+                      fontWeight: 600
+                    }}
+                    title="รูปแบบหัวข้อและย่อหน้า"
+                  >
+                    <span>
+                      {currentHeading === 'p' && 'ข้อความปกติ'}
+                      {currentHeading === 'h1' && 'หัวเรื่องหลัก'}
+                      {currentHeading === 'h2' && 'หัวข้อตอน'}
+                      {currentHeading === 'h3' && 'หัวข้อย่อยฉาก'}
+                      {currentHeading === 'blockquote' && 'คำคม / บทพูด'}
+                    </span>
+                    <ChevronDown size={11} strokeWidth={2} />
+                  </button>
+
+                  {showHeadingMenu && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '32px',
+                      left: 0,
+                      background: '#FFFFFF',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      zIndex: 30,
+                      width: '160px',
+                      padding: '4px 0'
+                    }}>
+                      {[
+                        { tag: 'p', label: 'ข้อความปกติ' },
+                        { tag: 'h1', label: 'หัวเรื่องหลัก (H1)' },
+                        { tag: 'h2', label: 'หัวข้อตอน (H2)' },
+                        { tag: 'h3', label: 'หัวข้อย่อยฉาก (H3)' },
+                        { tag: 'blockquote', label: 'คำคม / บทพูดเด่น' }
+                      ].map(item => (
+                        <div
+                          key={item.tag}
+                          onMouseDown={(e) => { e.preventDefault(); applyHeadingStyle(item.tag); }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            color: currentHeading === item.tag ? 'var(--teal-primary)' : 'var(--text-main)',
+                            fontWeight: currentHeading === item.tag ? 700 : 500,
+                            background: currentHeading === item.tag ? 'var(--teal-subtle)' : 'transparent'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = 'var(--bg-inset)'}
+                          onMouseLeave={(e) => e.target.style.background = currentHeading === item.tag ? 'var(--teal-subtle)' : 'transparent'}
+                        >
+                          {item.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  เวลาอ่านประมาณ: <strong style={{ color: 'var(--teal-primary)' }}>{Math.ceil((currentChapter.wordCount || 0) / 250) || 1} นาที</strong>
+
+                {/* 3. Font Family Selector */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowFontMenu(!showFontMenu); }}
+                    style={{
+                      height: '28px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-surface)',
+                      fontSize: '0.74rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      cursor: 'pointer',
+                      color: 'var(--text-main)',
+                      fontWeight: 600
+                    }}
+                    title="เปลี่ยนแบบอักษร (Font)"
+                  >
+                    <span>{currentFont}</span>
+                    <ChevronDown size={11} strokeWidth={2} />
+                  </button>
+
+                  {showFontMenu && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '32px',
+                      left: 0,
+                      background: '#FFFFFF',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      zIndex: 30,
+                      width: '150px',
+                      padding: '4px 0'
+                    }}>
+                      {['Sarabun', 'Prompt', 'Bai Jamjuree', 'Kodchasan', 'Georgia', 'Courier New'].map(font => (
+                        <div
+                          key={font}
+                          onMouseDown={(e) => { e.preventDefault(); applyFontFamily(font); }}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '0.76rem',
+                            cursor: 'pointer',
+                            fontFamily: font,
+                            color: currentFont === font ? 'var(--teal-primary)' : 'var(--text-main)',
+                            fontWeight: currentFont === font ? 700 : 500,
+                            background: currentFont === font ? 'var(--teal-subtle)' : 'transparent'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = 'var(--bg-inset)'}
+                          onMouseLeave={(e) => e.target.style.background = currentFont === font ? 'var(--teal-subtle)' : 'transparent'}
+                        >
+                          {font}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="gdoc-divider" />
+
+                {/* 4. Font Size Controls (ขยายฟอนต์ / ลดฟอนต์) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '1px 3px', background: 'var(--bg-surface)' }}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); stepFontSize(-1); }}
+                    className="gdoc-tool-btn"
+                    style={{ width: '22px', height: '24px', fontSize: '0.8rem', fontWeight: 700 }}
+                    title="ลดขนาดตัวอักษร"
+                  >
+                    -
+                  </button>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, width: '26px', textAlign: 'center', color: 'var(--text-main)' }}>
+                    {currentFontSize}
+                  </span>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); stepFontSize(1); }}
+                    className="gdoc-tool-btn"
+                    style={{ width: '22px', height: '24px', fontSize: '0.8rem', fontWeight: 700 }}
+                    title="ขยายขนาดตัวอักษร"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="gdoc-divider" />
+
+                {/* 5. Bold, Italic, Underline, Strikethrough */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('bold'); }}
+                  className="gdoc-tool-btn"
+                  title="ตัวหนา (Ctrl+B)"
+                >
+                  <Bold size={14} strokeWidth={2.5} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('italic'); }}
+                  className="gdoc-tool-btn"
+                  title="ตัวเอียง (Ctrl+I)"
+                >
+                  <Italic size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('underline'); }}
+                  className="gdoc-tool-btn"
+                  title="ขีดเส้นใต้ (Ctrl+U)"
+                >
+                  <Underline size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('strikeThrough'); }}
+                  className="gdoc-tool-btn"
+                  title="ขีดฆ่า (Strikethrough)"
+                >
+                  <Strikethrough size={14} strokeWidth={2} />
+                </button>
+
+                <div className="gdoc-divider" />
+
+                {/* 6. Text Color (เปลี่ยนสีตัวอักษร) */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowTextColorMenu(!showTextColorMenu); setShowHighlightMenu(false); }}
+                    className="gdoc-tool-btn"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                    title="เปลี่ยนสีตัวอักษร"
+                  >
+                    <span style={{ fontSize: '0.78rem', fontWeight: 900, lineHeight: 1 }}>A</span>
+                    <div style={{ width: '12px', height: '3px', background: activeTextColor, marginTop: '1px', borderRadius: '1px' }} />
+                  </button>
+
+                  {showTextColorMenu && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '32px',
+                      left: '-20px',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+                      zIndex: 30,
+                      padding: '8px',
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 22px)',
+                      gap: '6px'
+                    }}>
+                      {[
+                        { color: '#1D2425', title: 'ดำเข้ม' },
+                        { color: '#0B4A51', title: 'เขียวเทล SeriesX' },
+                        { color: '#1E3A8A', title: 'กรมท่า' },
+                        { color: '#B91C1C', title: 'แดงเลือดหมู' },
+                        { color: '#C2410C', title: 'ส้มอิฐ' },
+                        { color: '#15803D', title: 'เขียวมรกต' },
+                        { color: '#7E22CE', title: 'ม่วง' },
+                        { color: '#6B7280', title: 'เทาเข้ม' }
+                      ].map(swatch => (
+                        <div
+                          key={swatch.color}
+                          onMouseDown={(e) => { e.preventDefault(); applyTextColor(swatch.color); }}
+                          style={{
+                            width: '22px',
+                            height: '22px',
+                            background: swatch.color,
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            border: activeTextColor === swatch.color ? '2px solid #000' : '1px solid rgba(0,0,0,0.1)'
+                          }}
+                          title={swatch.title}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 7. Highlight Color (การใส่ไฮไลท์) */}
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowHighlightMenu(!showHighlightMenu); setShowTextColorMenu(false); }}
+                    className="gdoc-tool-btn"
+                    title="สีไฮไลท์ข้อความ"
+                  >
+                    <Highlighter size={14} strokeWidth={2} color={activeHighlightColor === 'transparent' ? 'var(--text-main)' : 'var(--teal-primary)'} />
+                  </button>
+
+                  {showHighlightMenu && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '32px',
+                      left: '-20px',
+                      background: '#FFFFFF',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
+                      zIndex: 30,
+                      padding: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}>
+                      <div
+                        onMouseDown={(e) => { e.preventDefault(); applyHighlightColor('transparent'); }}
+                        style={{
+                          padding: '4px 6px',
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          borderBottom: '1px solid #ECE7DD'
+                        }}
+                      >
+                        <X size={12} strokeWidth={2} />
+                        <span>ไม่ใส่ไฮไลท์ (ล้างสี)</span>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 22px)', gap: '6px' }}>
+                        {[
+                          { color: '#FEF08A', title: 'เหลืองนีออน' },
+                          { color: '#BBF7D0', title: 'เขียวมินต์' },
+                          { color: '#BAE6FD', title: 'ฟ้าพาสเทล' },
+                          { color: '#FBCFE8', title: 'ชมพูพาสเทล' },
+                          { color: '#FED7AA', title: 'ส้มพีช' },
+                          { color: '#E9D5FF', title: 'ม่วงอ่อน' },
+                          { color: '#E5E7EB', title: 'เทาอ่อน' },
+                          { color: '#FED7D7', title: 'แดงกุหลาบ' }
+                        ].map(swatch => (
+                          <div
+                            key={swatch.color}
+                            onMouseDown={(e) => { e.preventDefault(); applyHighlightColor(swatch.color); }}
+                            style={{
+                              width: '22px',
+                              height: '22px',
+                              background: swatch.color,
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              border: activeHighlightColor === swatch.color ? '2px solid var(--teal-primary)' : '1px solid rgba(0,0,0,0.15)'
+                            }}
+                            title={swatch.title}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="gdoc-divider" />
+
+                {/* 8. Text Alignment */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyLeft'); }}
+                  className="gdoc-tool-btn"
+                  title="จัดชิดซ้าย"
+                >
+                  <AlignLeft size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyCenter'); }}
+                  className="gdoc-tool-btn"
+                  title="จัดกึ่งกลาง"
+                >
+                  <AlignCenter size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyRight'); }}
+                  className="gdoc-tool-btn"
+                  title="จัดชิดขวา"
+                >
+                  <AlignRight size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('justifyFull'); }}
+                  className="gdoc-tool-btn"
+                  title="จัดเต็มแนวบรรทัด"
+                >
+                  <AlignJustify size={14} strokeWidth={2} />
+                </button>
+
+                <div className="gdoc-divider" />
+
+                {/* 9. Lists & Indentation */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('insertUnorderedList'); }}
+                  className="gdoc-tool-btn"
+                  title="รายการสัญลักษณ์ (Bullet List)"
+                >
+                  <List size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('insertOrderedList'); }}
+                  className="gdoc-tool-btn"
+                  title="รายการตัวเลข (Numbered List)"
+                >
+                  <ListOrdered size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('indent'); }}
+                  className="gdoc-tool-btn"
+                  title="เพิ่มการเยื้องหน้า (Indent)"
+                >
+                  <Indent size={14} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); executeCommand('outdent'); }}
+                  className="gdoc-tool-btn"
+                  title="ลดการเยื้องหน้า (Outdent)"
+                >
+                  <Outdent size={14} strokeWidth={2} />
+                </button>
+
+                <div className="gdoc-divider" />
+
+                {/* 10. Scene Divider & Dialogue Quote */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); insertSceneBreak(); }}
+                  className="btn-secondary"
+                  style={{ padding: '3px 7px', fontSize: '0.72rem', height: '26px' }}
+                  title="แทรกจุดตัดฉาก (Scene Break ***)"
+                >
+                  <span>ตัดฉาก ***</span>
+                </button>
+
+                <button
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); insertDialogueQuote(); }}
+                  className="btn-secondary"
+                  style={{ padding: '3px 7px', fontSize: '0.72rem', height: '26px' }}
+                  title="แทรกบรรทัดบทพูดตัวละคร"
+                >
+                  <Quote size={12} strokeWidth={2} />
+                  <span>บทพูด " "</span>
+                </button>
+
+                {/* Find & Replace Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowFindReplace(!showFindReplace)}
+                  className={showFindReplace ? "gdoc-tool-btn active" : "gdoc-tool-btn"}
+                  title="ค้นหาและแทนที่คำ (Find & Replace)"
+                >
+                  <Search size={14} strokeWidth={2} />
+                </button>
+              </div>
+
+              {/* Right Side Tools: Comment Button & Auto-Save */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleCaptureSelectionForComment}
+                  className="btn-primary"
+                  style={{ padding: '4px 10px', fontSize: '0.74rem', height: '28px' }}
+                  title="เลือกข้อความแล้วกดเพื่อเพิ่มคอมเมนต์เจาะจงจุดนี้"
+                >
+                  <MessageSquarePlus size={13} strokeWidth={2} />
+                  <span>+ เพิ่มคอมเมนต์</span>
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', color: 'var(--accent-green)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  <CheckCircle2 size={12} strokeWidth={2} />
+                  <span>{saveStatus}</span>
                 </div>
               </div>
+
             </div>
 
-            {/* AI Notification Alert */}
-            {aiNotice && (
+            {/* Find & Replace Bar (Collapsible) */}
+            {showFindReplace && (
               <div style={{
-                marginBottom: '16px',
-                padding: '8px 14px',
-                borderRadius: 'var(--radius-sm)',
-                background: 'var(--accent-green-bg)',
-                color: 'var(--accent-green)',
-                fontSize: '0.8rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                border: '1px solid rgba(31, 122, 89, 0.3)'
+                paddingTop: '6px',
+                borderTop: '1px dashed var(--border-subtle)',
+                flexWrap: 'wrap'
               }}>
-                <CheckCircle2 size={15} strokeWidth={2} />
-                <span>{aiNotice}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Search size={13} strokeWidth={2} color="var(--text-muted)" />
+                  <input
+                    type="text"
+                    placeholder="ค้นหาคำ..."
+                    value={findKeyword}
+                    onChange={(e) => setFindKeyword(e.target.value)}
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: '0.75rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-inset)',
+                      outline: 'none',
+                      width: '130px'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Replace size={13} strokeWidth={2} color="var(--text-muted)" />
+                  <input
+                    type="text"
+                    placeholder="แทนที่ด้วย..."
+                    value={replaceKeyword}
+                    onChange={(e) => setReplaceKeyword(e.target.value)}
+                    style={{
+                      padding: '3px 8px',
+                      fontSize: '0.75rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-subtle)',
+                      background: 'var(--bg-inset)',
+                      outline: 'none',
+                      width: '130px'
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleExecuteReplace(false)}
+                  className="btn-secondary"
+                  style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                >
+                  แทนที่
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleExecuteReplace(true)}
+                  className="btn-secondary"
+                  style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                >
+                  แทนที่ทั้งหมด
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowFindReplace(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '2px' }}
+                >
+                  <X size={14} strokeWidth={2} />
+                </button>
               </div>
             )}
+          </div>
 
-            {/* Long-Form Textarea formatted as a Google Doc page */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <textarea
-                value={currentChapter.content || ''}
-                onChange={(e) => handleUpdateContent(e.target.value)}
-                placeholder="เริ่มพิมพ์เนื้อหานิยายขนาดยาวที่นี่... ระบบรองรับเนื้อเรื่องหลายพันคำ สามารถจัดย่อหน้า พิมพ์บทสนทนา หรือสั่งให้ AI ช่วยแต่งต่อได้ทันที"
-                style={{
-                  flex: 1,
-                  minHeight: '680px',
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#2B2620',
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: '1.02rem',
-                  lineHeight: 2.1,
-                  letterSpacing: '0.015em',
-                  resize: 'none',
-                  padding: 0
-                }}
-              />
-            </div>
-
-            {/* Author Director Memo Box */}
-            <div style={{
-              marginTop: '28px',
-              padding: '14px 18px',
-              borderRadius: 'var(--radius-sm)',
-              background: '#F9F7F2',
-              border: '1px dashed #D8D2C4'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--teal-primary)', fontWeight: 700, marginBottom: '4px' }}>
-                <Edit3 size={13} strokeWidth={2} />
-                <span>บันทึกช่วยจำของผู้แต่ง & จุดเน้นตอน (Author Memo):</span>
+          {/* ========================================================
+              GOOGLE DOCS RULER BAR (ไม้บรรทัดหน้ากระดาษ)
+             ======================================================== */}
+          <div style={{ width: '100%', maxWidth: '860px', padding: '0 4px' }}>
+            <div className="googledocs-ruler">
+              <div style={{ width: '64px', height: '100%', background: '#DDD7CC', borderRight: '1px solid #C5BCAD' }} />
+              
+              <div style={{ flex: 1, position: 'relative', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px' }}>
+                {[1, 2, 3, 4, 5, 6, 7].map(num => (
+                  <div key={num} style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.62rem', color: '#7A7265', fontWeight: 600 }}>{num}</span>
+                    <div style={{ width: '1px', height: '4px', background: '#9E9484' }} />
+                  </div>
+                ))}
               </div>
-              <input
-                type="text"
-                value={currentChapter.notes || ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const updated = chapters.map(c => c.id === currentChapter.id ? { ...c, notes: val } : c);
-                  setChapters(updated);
-                  syncSeriesData(updated);
-                }}
-                placeholder="เช่น จุดหักมุมท้ายตอน, ความรู้สึกผิดของตัวละครหลัก..."
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
+
+              <div style={{ width: '64px', height: '100%', background: '#DDD7CC', borderLeft: '1px solid #C5BCAD' }} />
+            </div>
+          </div>
+
+          {/* ========================================================
+              REALISTIC GOOGLE DOC PAPER SHEET (CONTENTEDITABLE)
+             ======================================================== */}
+          <div style={{
+            width: '100%',
+            maxWidth: '860px',
+            position: 'relative'
+          }}>
+            <div className="googledocs-sheet" style={{ fontFamily: currentFont }}>
+              
+              {/* Document Header (Editable Title) */}
+              <div style={{ marginBottom: '24px', borderBottom: '1px solid #EDE7DC', paddingBottom: '14px' }}>
+                <input
+                  type="text"
+                  value={currentChapter.title || ''}
+                  onChange={(e) => handleUpdateTitle(e.target.value)}
+                  placeholder="ชื่อตอนนิยาย..."
+                  style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 800,
+                    color: 'var(--text-main)',
+                    fontFamily: 'var(--font-display)',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    width: '100%',
+                    padding: '2px 0',
+                    borderBottom: '2px solid transparent'
+                  }}
+                  onFocus={(e) => e.target.style.borderBottom = '2px solid var(--teal-primary)'}
+                  onBlur={(e) => e.target.style.borderBottom = '2px solid transparent'}
+                />
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  <div>
+                    สังกัด: <strong style={{ color: 'var(--teal-primary)' }}>{currentVolume.title}</strong> &bull;{' '}
+                    สถานะ: <strong style={{ color: 'var(--text-main)' }}>{currentChapter.status}</strong>
+                  </div>
+                  <div>
+                    เวลาอ่านประมาณ: <strong style={{ color: 'var(--teal-primary)' }}>{Math.ceil(currentWordCount / 250) || 1} นาที</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Notification Alert */}
+              {aiNotice && (
+                <div style={{
+                  marginBottom: '16px',
+                  padding: '8px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--accent-green-bg)',
+                  color: 'var(--accent-green)',
                   fontSize: '0.8rem',
-                  color: '#4A4238'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  border: '1px solid rgba(31, 122, 89, 0.3)'
+                }}>
+                  <CheckCircle2 size={15} strokeWidth={2} />
+                  <span>{aiNotice}</span>
+                </div>
+              )}
+
+              {/* Real Rich-Text Document Body (ContentEditable) */}
+              <div
+                ref={editorRef}
+                contentEditable="true"
+                suppressContentEditableWarning={true}
+                onInput={handleEditorInput}
+                style={{
+                  minHeight: '720px',
+                  outline: 'none',
+                  fontSize: `${currentFontSize}pt`
                 }}
               />
-            </div>
 
-            {/* Document Bottom Footer Info */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '20px',
-              paddingTop: '12px',
-              borderTop: '1px solid #ECE7DD',
-              fontSize: '0.75rem',
-              color: '#8A8275'
-            }}>
-              <div>
-                หน้า 1 จาก {estimatedPages} หน้า &bull; {(currentChapter.wordCount || 0).toLocaleString()} คำ
+              {/* Author Director Memo Box */}
+              <div style={{
+                marginTop: '32px',
+                padding: '12px 16px',
+                borderRadius: 'var(--radius-sm)',
+                background: '#F9F7F2',
+                border: '1px dashed #D8D2C4'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--teal-primary)', fontWeight: 700, marginBottom: '4px' }}>
+                  <Edit3 size={13} strokeWidth={2} />
+                  <span>บันทึกช่วยจำของผู้แต่ง & จุดเน้นตอน (Author Memo):</span>
+                </div>
+                <input
+                  type="text"
+                  value={currentChapter.notes || ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const updated = chapters.map(c => c.id === currentChapter.id ? { ...c, notes: val } : c);
+                    setChapters(updated);
+                    syncSeriesData(updated);
+                  }}
+                  placeholder="เช่น จุดหักมุมท้ายตอน, ความรู้สึกผิดของตัวละครหลัก..."
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '0.8rem',
+                    color: '#4A4238'
+                  }}
+                />
               </div>
-              <div>
-                SeriesX Novel Studio &bull; Google Docs Collaborative Engine
-              </div>
-            </div>
 
+              {/* Document Bottom Footer Info */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: '24px',
+                paddingTop: '12px',
+                borderTop: '1px solid #ECE7DD',
+                fontSize: '0.75rem',
+                color: '#8A8275'
+              }}>
+                <div>
+                  หน้า 1 จาก {estimatedPages} หน้า &bull; {currentWordCount.toLocaleString()} คำ &bull; {currentCharCount.toLocaleString()} ตัวอักษร
+                </div>
+                <div>
+                  SeriesX Novel Studio &bull; Google Docs Rich Manuscript Engine
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
 
@@ -833,37 +1629,36 @@ export default function NovelStudioEditor({
         {!focusMode && (
           <div className="clay-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', minHeight: '820px', gap: '14px' }}>
             
-            {/* Tab Switcher: Comments vs AI */}
+            {/* 3-Tab Switcher: Comments vs AI Writer vs AI Splitter */}
             <div style={{
               display: 'flex',
               background: 'var(--bg-inset)',
-              padding: '4px',
+              padding: '3px',
               borderRadius: 'var(--radius-pill)',
               border: '1px solid var(--border-subtle)',
-              gap: '4px'
+              gap: '2px'
             }}>
               <button
                 type="button"
                 onClick={() => setRightPanelTab('comments')}
                 style={{
                   flex: 1,
-                  padding: '7px 10px',
+                  padding: '6px 4px',
                   borderRadius: 'var(--radius-pill)',
                   border: 'none',
                   background: rightPanelTab === 'comments' ? 'var(--teal-primary)' : 'transparent',
                   color: rightPanelTab === 'comments' ? '#FFFFFF' : 'var(--text-main)',
                   fontWeight: rightPanelTab === 'comments' ? 700 : 500,
-                  fontSize: '0.78rem',
+                  fontSize: '0.72rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s'
+                  gap: '4px'
                 }}
               >
-                <MessageSquare size={14} strokeWidth={2} />
-                <span>ความคิดเห็น ({chapterComments.length})</span>
+                <MessageSquare size={12} strokeWidth={2} />
+                <span>คอมเมนต์ ({chapterComments.length})</span>
               </button>
 
               <button
@@ -871,27 +1666,52 @@ export default function NovelStudioEditor({
                 onClick={() => setRightPanelTab('ai')}
                 style={{
                   flex: 1,
-                  padding: '7px 10px',
+                  padding: '6px 4px',
                   borderRadius: 'var(--radius-pill)',
                   border: 'none',
                   background: rightPanelTab === 'ai' ? 'var(--teal-primary)' : 'transparent',
                   color: rightPanelTab === 'ai' ? '#FFFFFF' : 'var(--text-main)',
                   fontWeight: rightPanelTab === 'ai' ? 700 : 500,
-                  fontSize: '0.78rem',
+                  fontSize: '0.72rem',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px',
-                  transition: 'all 0.15s'
+                  gap: '4px'
                 }}
               >
-                <Sparkles size={14} strokeWidth={2} />
-                <span>AI ช่วยเขียน</span>
+                <Sparkles size={12} strokeWidth={2} />
+                <span>AI ช่วยแต่ง</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRightPanelTab('split');
+                  if (!splitResults.length) handleGenerateEpisodeSplit();
+                }}
+                style={{
+                  flex: 1,
+                  padding: '6px 4px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  background: rightPanelTab === 'split' ? 'var(--teal-primary)' : 'transparent',
+                  color: rightPanelTab === 'split' ? '#FFFFFF' : 'var(--text-main)',
+                  fontWeight: rightPanelTab === 'split' ? 700 : 500,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Split size={12} strokeWidth={2} />
+                <span>AI แบ่งตอน</span>
               </button>
             </div>
 
-            {/* TAB CONTENT A: COMMENTS & EDITORIAL REVIEW */}
+            {/* TAB CONTENT 1: COMMENTS & EDITORIAL REVIEW */}
             {rightPanelTab === 'comments' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                 
@@ -912,8 +1732,8 @@ export default function NovelStudioEditor({
                           color: commentFilter === f.id ? '#FFFFFF' : 'var(--text-muted)',
                           border: 'none',
                           borderRadius: 'var(--radius-pill)',
-                          padding: '3px 8px',
-                          fontSize: '0.7rem',
+                          padding: '3px 7px',
+                          fontSize: '0.68rem',
                           fontWeight: commentFilter === f.id ? 700 : 500,
                           cursor: 'pointer'
                         }}
@@ -955,129 +1775,146 @@ export default function NovelStudioEditor({
                     gap: '8px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--teal-primary)' }}>
-                        เพิ่มความคิดเห็น / ข้อเสนอแนะ:
-                      </span>
+                      <strong style={{ fontSize: '0.76rem', color: 'var(--text-main)' }}>เพิ่มข้อเสนอแนะตรวจบท</strong>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCommentForm(false)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}
+                      >
+                        <X size={12} strokeWidth={2} />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>ตำแหน่ง/ข้อความที่ตรวจ:</label>
+                      <input
+                        type="text"
+                        value={newCommentTarget}
+                        onChange={(e) => setNewCommentTarget(e.target.value)}
+                        placeholder="ไฮไลต์ข้อความในเอกสาร หรือพิมพ์ระบุจุด..."
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '5px 8px',
+                          fontSize: '0.72rem',
+                          color: 'var(--text-main)'
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>บทบาทผู้ตรวจ:</label>
                       <select
                         value={newCommentAuthor}
                         onChange={(e) => setNewCommentAuthor(e.target.value)}
                         style={{
+                          width: '100%',
                           background: 'var(--bg-surface)',
                           border: '1px solid var(--border-subtle)',
-                          borderRadius: 'var(--radius-pill)',
-                          fontSize: '0.7rem',
-                          padding: '2px 6px',
-                          outline: 'none'
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '5px 8px',
+                          fontSize: '0.72rem',
+                          color: 'var(--text-main)'
                         }}
                       >
-                        <option value="ผู้กำกับ ธีรภัทร (Director)">ผู้กำกับ (Director)</option>
-                        <option value="บรรณาธิการ พิมพ์ชนก (Editor)">บรรณาธิการ (Editor)</option>
-                        <option value="AI Script Doctor">AI Script Doctor</option>
-                        <option value="ผู้เขียนร่วม (Co-Writer)">ผู้เขียนร่วม (Co-Writer)</option>
+                        <option value="ผู้กำกับ ธีรภัทร (Director)">ผู้กำกับ ธีรภัทร (Director)</option>
+                        <option value="บรรณาธิการ พิมพ์ชนก (Editor)">บรรณาธิการ พิมพ์ชนก (Editor)</option>
+                        <option value="AI Script Doctor">AI Script Doctor (ตรวจความสมเหตุสมผล)</option>
+                        <option value="ผู้แต่ง/นักเขียนบท (Writer)">ผู้แต่ง/นักเขียนบท (Writer)</option>
                       </select>
                     </div>
 
-                    <input
-                      type="text"
-                      value={newCommentTarget}
-                      onChange={(e) => setNewCommentTarget(e.target.value)}
-                      placeholder="ระบุข้อความหรือจุดที่ต้องการคอมเมนต์..."
-                      style={{
-                        background: 'var(--bg-surface)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '6px 8px',
-                        fontSize: '0.74rem',
-                        color: 'var(--text-main)',
-                        outline: 'none'
-                      }}
-                    />
-
-                    <textarea
-                      rows={2}
-                      value={newCommentText}
-                      onChange={(e) => setNewCommentText(e.target.value)}
-                      placeholder="พิมพ์ข้อเสนอแนะ เช่น ควรปรับไดอะล็อกให้กระชับขึ้น, เพิ่มจังหวะสบตา..."
-                      style={{
-                        background: 'var(--bg-surface)',
-                        border: '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-sm)',
-                        padding: '6px 8px',
-                        fontSize: '0.74rem',
-                        color: 'var(--text-main)',
-                        outline: 'none',
-                        resize: 'none'
-                      }}
-                    />
+                    <div>
+                      <label style={{ fontSize: '0.68rem', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>คำแนะนำ/คอมเมนต์:</label>
+                      <textarea
+                        value={newCommentText}
+                        onChange={(e) => setNewCommentText(e.target.value)}
+                        placeholder="พิมพ์สิ่งที่ควรปรับ เช่น มุมกล้อง, คำพูดกระชับขึ้น, การแสดงอารมณ์..."
+                        rows={2}
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '6px 8px',
+                          fontSize: '0.74rem',
+                          color: 'var(--text-main)',
+                          resize: 'none'
+                        }}
+                        autoFocus
+                      />
+                    </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
                       <button
                         type="button"
                         onClick={() => setShowAddCommentForm(false)}
                         className="btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.72rem' }}
+                        style={{ padding: '4px 8px', fontSize: '0.7rem' }}
                       >
                         ยกเลิก
                       </button>
                       <button
                         type="submit"
-                        disabled={!newCommentText.trim()}
                         className="btn-primary"
-                        style={{ padding: '4px 12px', fontSize: '0.72rem' }}
+                        style={{ padding: '4px 10px', fontSize: '0.7rem' }}
+                        disabled={!newCommentText.trim()}
                       >
-                        <Send size={11} strokeWidth={2} />
-                        <span>ส่งข้อเสนอแนะ</span>
+                        ส่งคอมเมนต์
                       </button>
                     </div>
                   </form>
                 )}
 
-                {/* Comment Cards List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: '580px', paddingRight: '2px' }}>
+                {/* Comments List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, maxHeight: '600px', paddingRight: '4px' }}>
                   {filteredComments.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
-                      <MessageSquare size={24} strokeWidth={1.5} style={{ margin: '0 auto 8px auto', display: 'block', opacity: 0.6 }} />
-                      ไม่มีความคิดเห็นในหมวดนี้
+                    <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--text-dim)', fontSize: '0.78rem' }}>
+                      <MessageSquare size={28} strokeWidth={1.5} style={{ margin: '0 auto 8px auto', opacity: 0.4 }} />
+                      <div>ไม่มีความคิดเห็นในหมวดนี้</div>
+                      <div style={{ fontSize: '0.7rem', marginTop: '4px' }}>ไฮไลต์ข้อความในเอกสารแล้วกด "+ เพิ่มคอมเมนต์" ได้ทันที</div>
                     </div>
                   ) : (
                     filteredComments.map(cmt => {
-                      const isTargetActive = activeCommentId === cmt.id;
+                      const isSelected = cmt.id === activeCommentId;
                       return (
                         <div
                           key={cmt.id}
                           onClick={() => setActiveCommentId(cmt.id)}
                           style={{
-                            background: cmt.resolved ? 'var(--bg-inset)' : isTargetActive ? 'var(--bg-raised)' : 'var(--bg-surface)',
-                            border: isTargetActive ? '1.5px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
-                            borderRadius: 'var(--radius-md)',
                             padding: '12px',
-                            boxShadow: isTargetActive ? 'var(--shadow-raised)' : 'none',
+                            borderRadius: 'var(--radius-md)',
+                            background: cmt.resolved ? 'var(--bg-inset)' : isSelected ? 'var(--bg-raised)' : 'var(--bg-surface)',
+                            border: isSelected ? '2px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                            boxShadow: isSelected ? 'var(--shadow-raised-sm)' : 'none',
                             opacity: cmt.resolved ? 0.7 : 1,
                             transition: 'all 0.15s'
                           }}
                         >
-                          {/* Comment Header: Author & Resolve Toggle */}
+                          {/* Header: Author & Resolve Toggle */}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                               <div style={{
-                                width: '22px',
-                                height: '22px',
+                                width: '20px',
+                                height: '20px',
                                 borderRadius: '50%',
                                 background: cmt.avatarColor || 'var(--teal-primary)',
+                                color: '#FFFFFF',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: '#FFFFFF',
-                                fontSize: '0.65rem',
+                                fontSize: '0.62rem',
                                 fontWeight: 700
                               }}>
                                 {cmt.author.charAt(0)}
                               </div>
                               <div>
-                                <strong style={{ fontSize: '0.78rem', color: 'var(--text-main)', display: 'block', lineHeight: 1.1 }}>
+                                <div style={{ fontSize: '0.74rem', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2 }}>
                                   {cmt.author}
-                                </strong>
-                                <span style={{ fontSize: '0.66rem', color: 'var(--text-dim)' }}>
+                                </div>
+                                <span style={{ fontSize: '0.64rem', color: 'var(--text-dim)' }}>
                                   {cmt.timestamp}
                                 </span>
                               </div>
@@ -1090,13 +1927,11 @@ export default function NovelStudioEditor({
                                 handleToggleResolveComment(cmt.id);
                               }}
                               style={{
-                                background: cmt.resolved ? 'var(--accent-green-bg)' : 'transparent',
-                                border: '1px solid var(--border-subtle)',
-                                borderRadius: 'var(--radius-pill)',
-                                padding: '2px 8px',
-                                fontSize: '0.66rem',
-                                color: cmt.resolved ? 'var(--accent-green)' : 'var(--text-muted)',
+                                background: 'none',
+                                border: 'none',
+                                color: cmt.resolved ? 'var(--accent-green)' : 'var(--text-dim)',
                                 cursor: 'pointer',
+                                fontSize: '0.7rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px'
@@ -1188,7 +2023,7 @@ export default function NovelStudioEditor({
               </div>
             )}
 
-            {/* TAB CONTENT B: AI CO-WRITER TOOLBOX */}
+            {/* TAB CONTENT 2: AI CO-WRITER TOOLBOX */}
             {rightPanelTab === 'ai' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
                 
@@ -1341,12 +2176,367 @@ export default function NovelStudioEditor({
               </div>
             )}
 
+            {/* TAB CONTENT 3: AI CHAPTER & EPISODE BREAKDOWN ASSISTANT */}
+            {rightPanelTab === 'split' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                
+                <div style={{ background: 'rgba(11, 74, 81, 0.05)', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--teal-subtle)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--teal-primary)', fontWeight: 700, fontSize: '0.8rem', marginBottom: '4px' }}>
+                    <Split size={14} strokeWidth={2} />
+                    <span>AI วางโครงและแบ่งตอน/บท</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    AI ช่วยคำนวณจุดตัดตอนสำหรับซีรีส์แนวตั้ง (60-90 วินาที) โดยเน้น 3-Second Hook และ Cliffhanger ท้ายตอน
+                  </p>
+                </div>
+
+                {/* Split Configuration */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>รูปแบบการตัดตอน:</label>
+                    <select
+                      value={splitFormat}
+                      onChange={(e) => setSplitFormat(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-sm)',
+                        padding: '6px 8px',
+                        fontSize: '0.75rem',
+                        color: 'var(--text-main)',
+                        fontWeight: 600
+                      }}
+                    >
+                      <option value="vertical">ซีรีส์แนวตั้ง 9:16 (60-90 วินาที / ตอน)</option>
+                      <option value="webnovel">เว็บนิยายรายตอน (1,500 - 2,500 คำ)</option>
+                      <option value="scenes">แบ่งฉากย่อยในบทนี้ (Scene Beats)</option>
+                    </select>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>จำนวนตอน:</label>
+                      <select
+                        value={targetSplitCount}
+                        onChange={(e) => setTargetSplitCount(Number(e.target.value))}
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '6px 8px',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-main)'
+                        }}
+                      >
+                        <option value={3}>3 ตอน</option>
+                        <option value={5}>5 ตอน</option>
+                        <option value={8}>8 ตอน</option>
+                        <option value={10}>10 ตอน</option>
+                      </select>
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>จุดเน้น:</label>
+                      <select
+                        value={splitPacing}
+                        onChange={(e) => setSplitPacing(e.target.value)}
+                        style={{
+                          width: '100%',
+                          background: 'var(--bg-surface)',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 'var(--radius-sm)',
+                          padding: '6px 8px',
+                          fontSize: '0.75rem',
+                          color: 'var(--text-main)'
+                        }}
+                      >
+                        <option value="high-hook">เน้น Cliffhanger สูงสุด</option>
+                        <option value="emotional">เน้นดราม่าอารมณ์รัก</option>
+                        <option value="mystery">เน้นเปิดปมความลับ</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGenerateEpisodeSplit}
+                    disabled={isAnalyzingSplit}
+                    className="btn-primary"
+                    style={{ width: '100%', fontSize: '0.78rem', padding: '8px 12px', justifyContent: 'center', marginTop: '4px' }}
+                  >
+                    <Wand2 size={14} strokeWidth={2} />
+                    <span>{isAnalyzingSplit ? "AI กำลังวิเคราะห์จังหวะพล็อต..." : "วิเคราะห์และแบ่งตอนใหม่ด้วย AI"}</span>
+                  </button>
+                </div>
+
+                {/* Generated Episodes Outline List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '420px', paddingRight: '4px' }}>
+                  {splitResults.map((item) => (
+                    <div
+                      key={item.epNumber}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--bg-surface)',
+                        border: '1px solid var(--border-subtle)',
+                        fontSize: '0.74rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <strong style={{ color: 'var(--teal-primary)', fontSize: '0.78rem' }}>{item.title}</strong>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', background: 'var(--bg-inset)', padding: '1px 5px', borderRadius: '4px' }}>
+                          ~{item.estDuration} ({item.estWords} คำ)
+                        </span>
+                      </div>
+
+                      <div style={{ margin: '4px 0', color: 'var(--text-muted)' }}>
+                        <span style={{ color: 'var(--accent-amber)', fontWeight: 700 }}>Hook:</span> {item.hook}
+                      </div>
+
+                      <div style={{ margin: '4px 0', color: 'var(--text-main)' }}>
+                        <span style={{ color: 'var(--accent-red)', fontWeight: 700 }}>Cliffhanger:</span> {item.cliffhanger}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action Buttons for Generated Results */}
+                {splitResults.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '8px', borderTop: '1px dashed var(--border-subtle)' }}>
+                    <button
+                      onClick={handleApplySplitToChapters}
+                      className="btn-primary"
+                      style={{ width: '100%', fontSize: '0.76rem', padding: '8px 12px', justifyContent: 'center' }}
+                    >
+                      <Plus size={14} strokeWidth={2} />
+                      <span>นำไปสร้างเป็นตอนใหม่ในสารบัญทั้งหมด</span>
+                    </button>
+
+                    <button
+                      onClick={handleInsertCutMarkersToDoc}
+                      className="btn-secondary"
+                      style={{ width: '100%', fontSize: '0.74rem', padding: '6px 12px', justifyContent: 'center' }}
+                    >
+                      <Scissors size={13} strokeWidth={2} />
+                      <span>แทรกจุดตัดตอนลงในเอกสารปัจจุบัน</span>
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            )}
+
           </div>
         )}
 
       </div>
 
-      {/* MODAL: ADD VOLUME (Simple dialog) */}
+      {/* ========================================================
+          MODAL: AI EPISODE & CHAPTER BREAKDOWN STUDIO
+         ======================================================== */}
+      {showAiSplitModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px'
+        }}>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowAiSplitModal(false)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(25, 20, 15, 0.6)',
+              backdropFilter: 'blur(3px)'
+            }}
+          />
+          {/* Modal Container */}
+          <div className="clay-card" style={{
+            position: 'relative',
+            zIndex: 1,
+            background: '#FFFFFF',
+            maxWidth: '720px',
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '26px',
+            overflow: 'hidden',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.3)'
+          }}>
+            
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--teal-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>
+                  <Split size={18} strokeWidth={2} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', margin: 0, fontWeight: 800, color: 'var(--text-main)' }}>
+                    AI ช่วยแบ่งตอน & วางจังหวะซีรีส์แนวตั้ง (AI Episode Outliner)
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    คำนวณจุดตัด 3-Second Hook และ Cliffhanger ท้ายตอนตามสูตรซีรีส์แนวตั้งยอดนิยม
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAiSplitModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '4px' }}
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Split Settings */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px', background: 'var(--bg-inset)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>ประเภทผลงาน:</label>
+                <select
+                  value={splitFormat}
+                  onChange={(e) => setSplitFormat(e.target.value)}
+                  style={{ width: '100%', padding: '6px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}
+                >
+                  <option value="vertical">ซีรีส์แนวตั้ง 9:16 (60-90 วินาที)</option>
+                  <option value="webnovel">เว็บนิยายรายตอน (1,500-2,500 คำ)</option>
+                  <option value="scenes">แบ่งฉากย่อยในบทนี้</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>จำนวนตอนเป้าหมาย:</label>
+                <select
+                  value={targetSplitCount}
+                  onChange={(e) => setTargetSplitCount(Number(e.target.value))}
+                  style={{ width: '100%', padding: '6px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}
+                >
+                  <option value={3}>3 ตอนย่อย</option>
+                  <option value={5}>5 ตอนย่อย</option>
+                  <option value={8}>8 ตอนย่อย</option>
+                  <option value={10}>10 ตอนย่อย</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>ความแรง Cliffhanger:</label>
+                <select
+                  value={splitPacing}
+                  onChange={(e) => setSplitPacing(e.target.value)}
+                  style={{ width: '100%', padding: '6px', fontSize: '0.75rem', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface)' }}
+                >
+                  <option value="high-hook">ระดับ 10: ตัดอารมณ์ค้างสูงสุด</option>
+                  <option value="emotional">ระดับ 8: บีบคั้นหัวใจ</option>
+                  <option value="mystery">ระดับ 7: เปิดปมปริศนาใหม่</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Generated Breakdown Results */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '6px', marginBottom: '16px' }}>
+              {isAnalyzingSplit ? (
+                <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--teal-primary)' }}>
+                  <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 12px auto' }} />
+                  <div style={{ fontSize: '0.88rem', fontWeight: 700 }}>AI กำลังศึกษาจังหวะเนื้อเรื่องและวางจุดตัดตอน...</div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>กำลังค้นหา 3-Second Hook และ Cliffhanger ที่กระชากอารมณ์ที่สุด</div>
+                </div>
+              ) : splitResults.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-dim)' }}>
+                  <Split size={32} style={{ margin: '0 auto 8px auto', opacity: 0.4 }} />
+                  <div>กดปุ่ม "ประมวลผลการแบ่งตอน" ด้านล่างเพื่อให้ AI ช่วยวางโครงสร้าง</div>
+                </div>
+              ) : (
+                splitResults.map((ep) => (
+                  <div
+                    key={ep.epNumber}
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ fontSize: '0.88rem', color: 'var(--teal-primary)' }}>{ep.title}</strong>
+                      <span className="badge badge-sand" style={{ fontSize: '0.68rem' }}>
+                        ความยาวประมาณ: {ep.estDuration} ({ep.estWords.toLocaleString()} คำ)
+                      </span>
+                    </div>
+
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+                      <strong style={{ color: 'var(--accent-amber)' }}>3-Second Hook:</strong> {ep.hook}
+                    </div>
+
+                    <div style={{ fontSize: '0.76rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+                      <strong style={{ color: 'var(--text-muted)' }}>ปมหลักประจำตอน:</strong> {ep.conflict}
+                    </div>
+
+                    <div style={{ fontSize: '0.76rem', color: 'var(--accent-red)', lineHeight: 1.4, background: 'var(--accent-red-bg)', padding: '4px 8px', borderRadius: '4px' }}>
+                      <strong>จุดตัด Cliffhanger ท้ายตอน:</strong> {ep.cliffhanger}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', flexWrap: 'wrap', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={handleGenerateEpisodeSplit}
+                disabled={isAnalyzingSplit}
+                className="btn-secondary"
+                style={{ fontSize: '0.78rem' }}
+              >
+                <RefreshCw size={13} strokeWidth={2} />
+                <span>วิเคราะห์ใหม่อีกครั้ง</span>
+              </button>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleInsertCutMarkersToDoc}
+                  disabled={!splitResults.length}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.78rem' }}
+                >
+                  <Scissors size={14} strokeWidth={2} />
+                  <span>แทรกจุดตัดลงในเอกสาร</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleApplySplitToChapters}
+                  disabled={!splitResults.length}
+                  className="btn-primary"
+                  style={{ fontSize: '0.78rem' }}
+                >
+                  <Plus size={14} strokeWidth={2} />
+                  <span>สร้างตอนใหม่ในสารบัญทันที</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD VOLUME */}
       {showAddVolumeModal && (
         <div style={{
           position: 'fixed',
