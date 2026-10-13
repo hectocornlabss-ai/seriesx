@@ -1,7 +1,9 @@
-import React from 'react';
-import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock, ChevronDown, BookOpen } from 'lucide-react';
 
-export default function Header({ project, activeTab, setActiveTab, onExportPitchDeck, qaStatus }) {
+export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus }) {
+  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
+
   const tabs = [
     { id: 'writers', label: '1. Writers Room', sub: 'Hook 96/100', icon: PenTool },
     { id: 'character', label: '2. Casting & Character Bible', sub: 'Face-Lock 98.7%', icon: UserCheck },
@@ -28,8 +30,8 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
         flexWrap: 'wrap',
         gap: '16px'
       }}>
-        {/* Brand & Series Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Brand & Series Title with Book Cover Thumbnail */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
           <div style={{
             width: '42px',
             height: '42px',
@@ -43,10 +45,28 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
             <Film size={22} color="#FFFFFF" strokeWidth={2} />
           </div>
 
+          {/* Book Cover Thumbnail */}
+          <div
+            onClick={() => setShowSeriesDropdown(!showSeriesDropdown)}
+            style={{
+              width: '34px',
+              height: '48px',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-raised-sm)',
+              border: '1.5px solid var(--teal-primary)',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+            title="คลิกเพื่อสลับเรื่อง"
+          >
+            <img src={activeSeries.coverUrl} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 style={{
-                fontSize: '1.25rem',
+                fontSize: '1.2rem',
                 fontWeight: 700,
                 color: 'var(--text-main)',
                 letterSpacing: '-0.02em',
@@ -54,17 +74,85 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
               }}>
                 SeriesX Studio
               </h1>
-              <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
-                9:16 VERTICAL
-              </span>
-              <span className="badge badge-sand" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
-                AI MULTI-AGENT
-              </span>
+
+              {/* Series Switcher Pill */}
+              <button
+                onClick={() => setShowSeriesDropdown(!showSeriesDropdown)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '3px 10px',
+                  borderRadius: 'var(--radius-pill)',
+                  background: 'var(--bg-inset)',
+                  border: '1px solid var(--border-subtle)',
+                  color: 'var(--teal-primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <BookOpen size={12} strokeWidth={2} />
+                <span>{seriesList.length} เรื่องในระบบ</span>
+                <ChevronDown size={12} strokeWidth={2} />
+              </button>
             </div>
+
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              ซีรีส์: <strong style={{ color: 'var(--text-main)' }}>{project.title}</strong> — {project.episodeTitle}
+              เรื่องที่เปิด: <strong style={{ color: 'var(--text-main)' }}>{activeSeries.title}</strong> — {activeSeries.episodeTitle}
             </p>
           </div>
+
+          {/* Series Switcher Dropdown */}
+          {showSeriesDropdown && (
+            <div style={{
+              position: 'absolute',
+              top: '55px',
+              left: '56px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-raised)',
+              padding: '8px',
+              zIndex: 100,
+              minWidth: '320px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px'
+            }}>
+              <div style={{ padding: '6px 10px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase' }}>
+                เลือกซีรีส์ที่ต้องการผลิต:
+              </div>
+              {seriesList.map(item => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    onSelectSeries(item.id);
+                    setShowSeriesDropdown(false);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: item.id === activeSeries.id ? 'var(--bg-inset)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background 0.15s'
+                  }}
+                >
+                  <img src={item.coverUrl} alt="Cover" style={{ width: '28px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                  <div style={{ flex: 1 }}>
+                    <strong style={{ fontSize: '0.82rem', color: 'var(--text-main)', display: 'block' }}>{item.title}</strong>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{item.episodesCount} ตอน &bull; {item.genre.split('/')[0]}</span>
+                  </div>
+                  {item.id === activeSeries.id && (
+                    <span className="badge badge-teal" style={{ fontSize: '0.65rem' }}>Active</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Global Pipeline Health & Actions */}
@@ -103,7 +191,7 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
         </div>
       </div>
 
-      {/* Navigation Tabs (Image 2 style: Inset track with white raised pills) */}
+      {/* Navigation Tabs */}
       <nav style={{
         display: 'flex',
         gap: '4px',
