@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import WritersRoomTab from './components/WritersRoomTab';
 import CharacterBibleTab from './components/CharacterBibleTab';
@@ -7,32 +7,82 @@ import GenerationPipelineTab from './components/GenerationPipelineTab';
 import DualQAGateTab from './components/DualQAGateTab';
 import PitchDeckTab from './components/PitchDeckTab';
 import { initialSeriesList } from './data/mockProductionData';
+import { usePathRouter } from './utils/router';
 import './App.css';
 
 export default function App() {
+  const { path, searchParams, navigate } = usePathRouter();
   const [seriesList, setSeriesList] = useState(initialSeriesList);
   const [trashList, setTrashList] = useState([]);
-  const [activeSeriesId, setActiveSeriesId] = useState(initialSeriesList[0].id);
-  const [activeTab, setActiveTab] = useState('writers');
-  const [writersSubTab, setWritersSubTab] = useState('shelf');
+
+  // Read initial series from URL query ?id=... or fallback to first series
+  const querySeriesId = searchParams.get('id');
+  const initialId = querySeriesId && initialSeriesList.some(s => s.id === querySeriesId)
+    ? querySeriesId
+    : initialSeriesList[0].id;
+
+  const [activeSeriesId, setActiveSeriesId] = useState(initialId);
   const [isApproved, setIsApproved] = useState(false);
+
+  // Synchronize activeSeriesId if URL ?id=... changes (e.g. popstate back/forward or direct navigation)
+  useEffect(() => {
+    const urlId = searchParams.get('id');
+    if (urlId && seriesList.some(s => s.id === urlId) && urlId !== activeSeriesId) {
+      setActiveSeriesId(urlId);
+    }
+  }, [searchParams, seriesList, activeSeriesId]);
 
   const activeSeries = seriesList.find(s => s.id === activeSeriesId) || seriesList[0];
 
+  // Map path to active tab and subTab
+  let activeTab = 'writers';
+  let writersSubTab = 'shelf';
+
+  if (path === '/novel') {
+    activeTab = 'writers';
+    writersSubTab = 'novel';
+  } else if (path === '/structure') {
+    activeTab = 'writers';
+    writersSubTab = 'structure';
+  } else if (path === '/new-series') {
+    activeTab = 'writers';
+    writersSubTab = 'new-series';
+  } else if (path === '/screenplay') {
+    activeTab = 'writers';
+    writersSubTab = 'screenplay';
+  } else if (path === '/characters' || path === '/character') {
+    activeTab = 'character';
+  } else if (path === '/art') {
+    activeTab = 'art';
+  } else if (path === '/pipeline') {
+    activeTab = 'pipeline';
+  } else if (path === '/qa') {
+    activeTab = 'qa';
+  } else if (path === '/pitch') {
+    activeTab = 'pitch';
+  } else {
+    // Default: '/' or '/shelf'
+    activeTab = 'writers';
+    writersSubTab = 'shelf';
+  }
+
   const handleGoHome = () => {
-    setActiveTab('writers');
-    setWritersSubTab('shelf');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigate('/');
   };
 
   const handleSelectSeries = (id) => {
     setActiveSeriesId(id);
     setIsApproved(false);
+    // If currently on a series-scoped route, update the URL query
+    if (['/novel', '/structure', '/screenplay'].includes(path)) {
+      navigate(path, { id });
+    }
   };
 
   const handleAddSeries = (newSeries) => {
     setSeriesList([newSeries, ...seriesList]);
     setActiveSeriesId(newSeries.id);
+    navigate('/novel', { id: newSeries.id });
   };
 
   const handleUpdateSeries = (updatedSeries) => {
@@ -96,20 +146,28 @@ export default function App() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
-      {/* Header with Navigation and Active Series Title */}
+      {/* Header with Navigation, URL Routing, and Active Series Title */}
       <Header
         activeSeries={activeSeries}
         seriesList={seriesList}
         onSelectSeries={handleSelectSeries}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onExportPitchDeck={() => setActiveTab('pitch')}
+        setActiveTab={(tabId) => {
+          if (tabId === 'writers') navigate('/');
+          else if (tabId === 'character') navigate('/characters', { id: activeSeries.id });
+          else if (tabId === 'art') navigate('/art', { id: activeSeries.id });
+          else if (tabId === 'pipeline') navigate('/pipeline', { id: activeSeries.id });
+          else if (tabId === 'qa') navigate('/qa', { id: activeSeries.id });
+          else if (tabId === 'pitch') navigate('/pitch', { id: activeSeries.id });
+        }}
+        onExportPitchDeck={() => navigate('/pitch', { id: activeSeries.id })}
         qaStatus={isApproved ? 'APPROVED' : 'REVIEW'}
         onGoHome={handleGoHome}
+        currentPath={path}
       />
 
       {/* Main Studio Viewport */}
-      <main className="studio-container animate-fade-in" key={`${activeTab}-${activeSeries.id}`}>
+      <main className="studio-container animate-fade-in" key={`${path}-${activeSeries.id}`}>
         {activeTab === 'writers' && (
           <WritersRoomTab
             seriesList={seriesList}
@@ -122,9 +180,16 @@ export default function App() {
             onRestoreSeries={handleRestoreSeries}
             onPermanentDeleteSeries={handlePermanentDeleteSeries}
             onEmptyTrash={handleEmptyTrash}
-            onOpenCharacterBible={() => setActiveTab('character')}
+            onOpenCharacterBible={() => navigate('/characters', { id: activeSeries.id })}
             activeSubTab={writersSubTab}
-            onSubTabChange={setWritersSubTab}
+            onSubTabChange={(sub) => {
+              if (sub === 'novel') navigate('/novel', { id: activeSeries.id });
+              else if (sub === 'structure') navigate('/structure', { id: activeSeries.id });
+              else if (sub === 'new-series') navigate('/new-series');
+              else if (sub === 'screenplay') navigate('/screenplay', { id: activeSeries.id });
+              else navigate('/');
+            }}
+            onNavigate={(to, params) => navigate(to, params)}
             onGoHome={handleGoHome}
           />
         )}
@@ -179,13 +244,13 @@ export default function App() {
       }}>
         <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <strong style={{ color: 'var(--teal-primary)' }}>SeriesX Studio 2.0</strong> — Multi-Series AI Production Platform ({seriesList.length} Active Series)
+            <strong style={{ color: 'var(--teal-primary)' }}>SeriesX Studio 2.0</strong> — Multi-Series AI Production Platform ({seriesList.length} Active Series) &bull; Route: <code style={{ background: 'var(--bg-inset)', padding: '2px 6px', borderRadius: '4px', color: 'var(--teal-primary)' }}>{path}</code>
           </div>
           <div style={{ display: 'flex', gap: '16px', color: 'var(--text-dim)' }}>
             <span>9:16 UHD Vertical</span>
             <span>Multi-Story CRUD</span>
             <span>Book Cover Visuals</span>
-            <span>Dual QA Gateway</span>
+            <span>Google Docs Novel Canvas</span>
           </div>
         </div>
       </footer>

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock, ChevronDown, BookOpen } from 'lucide-react';
 
-export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus, onGoHome }) {
+export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus, onGoHome, currentPath = '/' }) {
   const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
 
   const tabs = [
-    { id: 'writers', label: '1. Writers Room', sub: 'Hook 96/100', icon: PenTool },
+    { id: 'writers', label: '1. Writers Room', sub: currentPath === '/novel' ? 'Google Docs' : 'Hook 96/100', icon: PenTool },
     { id: 'character', label: '2. Casting & Character Bible', sub: 'Face-Lock 98.7%', icon: UserCheck },
     { id: 'art', label: '3. Art & Sponsor Vault (VPP)', sub: 'LUMIÈRE', icon: Package },
     { id: 'pipeline', label: '4. Video & Audio Engine', sub: '9:16 UHD', icon: Camera },
@@ -127,8 +127,23 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
               </button>
             </div>
 
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              เรื่องที่เปิด: <strong style={{ color: 'var(--text-main)' }}>{activeSeries.title}</strong> — {activeSeries.episodeTitle}
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span>เรื่องที่เปิด: <strong style={{ color: 'var(--text-main)' }}>{activeSeries.title}</strong> — {activeSeries.episodeTitle}</span>
+              {currentPath === '/novel' && (
+                <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  หน้าแก้ไขบทนิยาย (Google Docs)
+                </span>
+              )}
+              {currentPath === '/structure' && (
+                <span className="badge badge-sand" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  โครงสร้างเรื่อง & Lore
+                </span>
+              )}
+              {currentPath === '/screenplay' && (
+                <span className="badge badge-teal-subtle" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  บทซีรีส์แนวตั้ง 9:16
+                </span>
+              )}
             </p>
           </div>
 

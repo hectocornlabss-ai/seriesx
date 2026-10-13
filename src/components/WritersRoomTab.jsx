@@ -17,14 +17,24 @@ export default function WritersRoomTab({
   onOpenCharacterBible,
   activeSubTab,
   onSubTabChange,
-  onGoHome
+  onGoHome,
+  onNavigate
 }) {
   const [internalSubTab, setInternalSubTab] = useState(activeSubTab || 'shelf');
   const subTab = activeSubTab || internalSubTab;
 
-  const setSubTab = (newTab) => {
+  const setSubTab = (newTab, optionalId) => {
     setInternalSubTab(newTab);
-    if (onSubTabChange) onSubTabChange(newTab);
+    const targetId = optionalId || activeSeries?.id;
+    if (onNavigate) {
+      if (newTab === 'novel') onNavigate('/novel', { id: targetId });
+      else if (newTab === 'structure') onNavigate('/structure', { id: targetId });
+      else if (newTab === 'new-series') onNavigate('/new-series');
+      else if (newTab === 'screenplay') onNavigate('/screenplay', { id: targetId });
+      else onNavigate('/');
+    } else if (onSubTabChange) {
+      onSubTabChange(newTab);
+    }
   };
 
   // Trash & Soft Delete States
@@ -437,7 +447,7 @@ export default function WritersRoomTab({
               >
                 {/* Book Cover Image 2:3 */}
                 <div
-                  onClick={() => { onSelectSeries(item.id); setSubTab('novel'); }}
+                  onClick={() => { onSelectSeries(item.id); setSubTab('novel', item.id); }}
                   style={{ position: 'relative', height: '240px', background: '#000', overflow: 'hidden', cursor: 'pointer' }}
                   title="คลิกภาพปกเพื่อเข้าสู่ห้องเขียนนิยาย"
                 >
@@ -485,7 +495,7 @@ export default function WritersRoomTab({
                 {/* Card Content & Metadata */}
                 <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                   <h3
-                    onClick={() => { onSelectSeries(item.id); setSubTab('novel'); }}
+                    onClick={() => { onSelectSeries(item.id); setSubTab('novel', item.id); }}
                     style={{ fontSize: '1.05rem', color: 'var(--text-main)', margin: 0, fontWeight: 700, cursor: 'pointer' }}
                     title="คลิกเพื่อเข้าสู่ห้องเขียนนิยาย"
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--teal-primary)'}
@@ -526,7 +536,7 @@ export default function WritersRoomTab({
                       )}
 
                       <button
-                        onClick={() => { onSelectSeries(item.id); setSubTab('novel'); }}
+                        onClick={() => { onSelectSeries(item.id); setSubTab('novel', item.id); }}
                         className="btn-primary"
                         style={{ padding: '6px 14px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
                         title="เปิดหน้าแต่งนิยายรายตอนสำหรับเรื่องนี้"
@@ -536,7 +546,7 @@ export default function WritersRoomTab({
                       </button>
 
                       <button
-                        onClick={() => { onSelectSeries(item.id); setSubTab('screenplay'); }}
+                        onClick={() => { onSelectSeries(item.id); setSubTab('screenplay', item.id); }}
                         className="btn-secondary"
                         style={{ padding: '5px 10px', fontSize: '0.72rem' }}
                         title="เปิดดูบทซีรีส์ 9:16"
@@ -548,7 +558,7 @@ export default function WritersRoomTab({
 
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
-                        onClick={() => { onSelectSeries(item.id); setSubTab('structure'); }}
+                        onClick={() => { onSelectSeries(item.id); setSubTab('structure', item.id); }}
                         style={{
                           width: '32px',
                           height: '32px',

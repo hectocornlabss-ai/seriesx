@@ -862,6 +862,27 @@ export default function NovelStudioEditor({
               <h2 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: '2px 0 0 0', fontWeight: 800 }}>
                 {series.title}
               </h2>
+
+              {/* Google Docs Menu Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', userSelect: 'none' }}>
+                {['ไฟล์', 'แก้ไข', 'มุมมอง', 'แทรก', 'รูปแบบ', 'เครื่องมือ AI', 'ส่วนเสริม'].map(menu => (
+                  <span
+                    key={menu}
+                    style={{
+                      fontSize: '0.74rem',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      padding: '2px 5px',
+                      borderRadius: '4px',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--teal-primary)'; e.currentTarget.style.background = 'var(--bg-inset)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    {menu}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
