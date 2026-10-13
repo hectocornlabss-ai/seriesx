@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Send, History, Check, Clock, UserCheck } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, AlertTriangle, FileText, Send, History, Check, Clock, UserCheck, Bot, Sparkles } from 'lucide-react';
 
 export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved }) {
   const [directorNotes, setDirectorNotes] = useState(qaReport.directorReview.directorNote);
@@ -20,31 +20,28 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
 
     setFeedbackList([newEntry, ...feedbackList]);
     setNewFeedback('');
-    setActionNotice('✅ บันทึกข้อเสนอแนะและส่งต่อให้แผนกที่เกี่ยวข้องเรียบร้อยแล้ว');
+    setActionNotice('บันทึกข้อเสนอแนะและส่งต่อให้แผนกที่เกี่ยวข้องเรียบร้อยแล้ว');
     setTimeout(() => setActionNotice(''), 4000);
   };
 
   const handleApprove = () => {
     onDirectorApprove();
-    setActionNotice('🎉 ผู้กำกับยืนยันอนุมัติ (Director Sign-off) ปลดล็อกขั้นตอนผลิต Master Export สำเร็จ!');
+    setActionNotice('ผู้กำกับยืนยันอนุมัติ (Director Sign-off) ปลดล็อกขั้นตอนผลิต Master Export สำเร็จ');
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' }}>
       {/* Banner: Dual QA Workflow Status */}
-      <div className="glass-panel" style={{
+      <div className="clay-card" style={{
         padding: '24px',
-        borderLeft: isApproved ? '4px solid #10b981' : '4px solid #f59e0b',
-        background: isApproved
-          ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.05))'
-          : 'linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(244, 63, 94, 0.05))'
+        borderLeft: isApproved ? '5px solid var(--accent-green)' : '5px solid var(--accent-amber)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <ShieldCheck size={26} color={isApproved ? '#34d399' : '#fbbf24'} />
+              <ShieldCheck size={26} strokeWidth={2} color={isApproved ? 'var(--accent-green)' : 'var(--accent-amber)'} />
               <div>
-                <h2 style={{ fontSize: '1.25rem', color: '#ffffff', margin: 0 }}>
+                <h2 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
                   ระบบตรวจทาน 2 ชั้น (Dual-Layer Quality Assurance System)
                 </h2>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -57,17 +54,17 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>คะแนน AI รวม:</div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-display)' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--teal-primary)', fontFamily: 'var(--font-display)' }}>
                 {qaReport.overallScore}%
               </div>
             </div>
             {isApproved ? (
-              <span className="badge badge-green" style={{ fontSize: '0.85rem', padding: '8px 14px' }}>
-                <CheckCircle2 size={16} /> DIRECTOR APPROVED
+              <span className="badge badge-green" style={{ fontSize: '0.82rem', padding: '8px 14px' }}>
+                <CheckCircle2 size={16} strokeWidth={2} /> DIRECTOR APPROVED
               </span>
             ) : (
-              <span className="badge badge-amber" style={{ fontSize: '0.85rem', padding: '8px 14px' }}>
-                <Clock size={16} /> AWAITING DIRECTOR APPROVAL
+              <span className="badge badge-amber" style={{ fontSize: '0.82rem', padding: '8px 14px' }}>
+                <Clock size={16} strokeWidth={2} /> AWAITING DIRECTOR APPROVAL
               </span>
             )}
           </div>
@@ -77,26 +74,33 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
       {actionNotice && (
         <div style={{
           padding: '12px 18px',
-          borderRadius: '10px',
-          background: 'rgba(16, 185, 129, 0.2)',
-          border: '1px solid rgba(16, 185, 129, 0.5)',
-          color: '#34d399',
-          fontSize: '0.9rem',
-          fontWeight: 600
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--accent-green-bg)',
+          border: '1px solid rgba(31, 122, 89, 0.4)',
+          color: 'var(--accent-green)',
+          fontSize: '0.88rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
         }}>
-          {actionNotice}
+          <CheckCircle2 size={18} strokeWidth={2} />
+          <span>{actionNotice}</span>
         </div>
       )}
 
       {/* Main Dual Columns */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Layer 1: AI Auto-Auditor Checks */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="clay-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0 }}>
-              🤖 ชั้นที่ 1: รายงานตรวจทานอัตโนมัติ (AI Auto-Auditor)
-            </h3>
-            <span className="badge badge-green">5/5 Checks Passed</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Bot size={18} strokeWidth={2} color="var(--teal-primary)" />
+              <h3 style={{ fontSize: '1.05rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
+                ชั้นที่ 1: รายงานตรวจทานอัตโนมัติ (AI Auto-Auditor)
+              </h3>
+            </div>
+            <span className="badge badge-teal">5/5 Checks Passed</span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -104,18 +108,19 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
               <div
                 key={chk.id}
                 style={{
-                  background: 'rgba(0,0,0,0.3)',
+                  background: 'var(--bg-inset)',
+                  boxShadow: 'var(--shadow-inset)',
                   border: '1px solid var(--border-subtle)',
-                  borderRadius: '10px',
+                  borderRadius: 'var(--radius-md)',
                   padding: '14px'
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: '#f8fafc' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     {chk.category}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34d399' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-green)' }}>
                       {chk.score}%
                     </span>
                     <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>{chk.status}</span>
@@ -130,60 +135,56 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
         </div>
 
         {/* Layer 2: Human Director Review Gate */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
+        <div className="clay-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.05rem', color: '#ffffff', margin: 0 }}>
-              👤 ชั้นที่ 2: Human Director Review Gate
-            </h3>
-            <span className="badge badge-blue">Executive Decision</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <UserCheck size={18} strokeWidth={2} color="var(--teal-primary)" />
+              <h3 style={{ fontSize: '1.05rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
+                ชั้นที่ 2: Human Director Review Gate
+              </h3>
+            </div>
+            <span className="badge badge-sand">Executive Decision</span>
           </div>
 
           <div style={{
-            background: 'rgba(0,0,0,0.35)',
-            borderRadius: '10px',
-            padding: '16px',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-raised-sm)',
+            borderRadius: 'var(--radius-md)',
+            padding: '16px',
             marginBottom: '16px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <UserCheck size={18} color="#60a5fa" />
-              <strong style={{ fontSize: '0.9rem', color: '#fff' }}>ผู้ตรวจทาน: ณัฐวุฒิ (Supervising Director)</strong>
+              <UserCheck size={18} strokeWidth={2} color="var(--teal-primary)" />
+              <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>ผู้ตรวจทาน: ณัฐวุฒิ (Supervising Director)</strong>
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
               "{directorNotes}"
             </p>
           </div>
 
-          {/* Action Approval / Reject Buttons */}
+          {/* Action Approval Buttons (Image 2 style: Deep Teal Capsule) */}
           <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
             <button
               onClick={handleApprove}
               disabled={isApproved}
+              className="btn-primary"
               style={{
                 flex: 1,
                 padding: '12px',
-                borderRadius: '8px',
-                background: isApproved ? 'rgba(16, 185, 129, 0.2)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: '#ffffff',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                border: isApproved ? '1px solid #10b981' : 'none',
-                boxShadow: isApproved ? 'none' : '0 0 20px rgba(16, 185, 129, 0.4)'
+                background: isApproved ? 'var(--accent-green)' : 'var(--teal-primary)',
+                opacity: isApproved ? 0.9 : 1
               }}
             >
-              <CheckCircle2 size={18} />
-              {isApproved ? 'อนุมัติเรียบร้อย (Approved)' : 'ยืนยันอนุมัติงาน (Approve & Lock)'}
+              <CheckCircle2 size={18} strokeWidth={2} />
+              <span>{isApproved ? 'อนุมัติเรียบร้อย (Approved)' : 'ยืนยันอนุมัติงาน (Approve & Lock)'}</span>
             </button>
           </div>
 
           {/* Conflict Resolution & Revision Comment System */}
           <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
-            <h4 style={{ fontSize: '0.9rem', color: '#ffffff', margin: '0 0 10px 0' }}>
-              💬 ส่งข้อเสนอแนะเพื่อสั่งปรับแต่ง (Request Revision / Settle Conflict)
+            <h4 style={{ fontSize: '0.9rem', color: 'var(--text-main)', margin: '0 0 10px 0', fontWeight: 700 }}>
+              ส่งข้อเสนอแนะเพื่อสั่งปรับแต่ง (Request Revision / Settle Conflict)
             </h4>
 
             <form onSubmit={handleAddFeedback} style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
@@ -192,32 +193,16 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
                 value={newFeedback}
                 onChange={(e) => setNewFeedback(e.target.value)}
                 placeholder="ระบุจุดที่ต้องการให้ AI ปรับแก้ เช่น [00:15] ขอเพิ่มเงาสะท้อนกระจก..."
-                style={{
-                  flex: 1,
-                  background: 'rgba(8, 9, 13, 0.7)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  padding: '8px 12px',
-                  fontSize: '0.82rem'
-                }}
+                className="clay-input"
+                style={{ flex: 1, padding: '9px 14px', fontSize: '0.82rem' }}
               />
               <button
                 type="submit"
-                style={{
-                  padding: '8px 14px',
-                  borderRadius: '6px',
-                  background: '#f43f5e',
-                  color: '#fff',
-                  fontSize: '0.82rem',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}
+                className="btn-primary"
+                style={{ padding: '9px 18px' }}
               >
-                <Send size={14} />
-                บันทึก
+                <Send size={14} strokeWidth={2} />
+                <span>บันทึก</span>
               </button>
             </form>
 
@@ -230,18 +215,19 @@ export default function DualQAGateTab({ qaReport, onDirectorApprove, isApproved 
                 <div
                   key={idx}
                   style={{
-                    background: 'rgba(255,255,255,0.02)',
+                    background: 'var(--bg-inset)',
+                    boxShadow: 'var(--shadow-inset)',
                     border: '1px solid var(--border-subtle)',
-                    padding: '8px 12px',
-                    borderRadius: '6px',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius-sm)',
                     fontSize: '0.78rem'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fb7185', fontWeight: 600 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--teal-primary)', fontWeight: 600 }}>
                     <span>{entry.version} &bull; {entry.author}</span>
                     <span style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>{entry.date}</span>
                   </div>
-                  <p style={{ margin: '4px 0 0 0', color: '#cbd5e1' }}>{entry.note}</p>
+                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-main)' }}>{entry.note}</p>
                 </div>
               ))}
             </div>

@@ -33,7 +33,7 @@ export default function App() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)' }}>
       {/* Header with Navigation and Studio Status */}
       <Header
         project={projectData.project}
@@ -94,17 +94,18 @@ export default function App() {
       <footer style={{
         marginTop: 'auto',
         borderTop: '1px solid var(--border-subtle)',
-        background: 'rgba(8, 9, 13, 0.95)',
+        background: 'var(--bg-surface)',
+        boxShadow: '0 -2px 10px rgba(190, 180, 160, 0.1)',
         padding: '16px 24px',
         textAlign: 'center',
         fontSize: '0.8rem',
-        color: 'var(--text-dim)'
+        color: 'var(--text-muted)'
       }}>
         <div style={{ maxWidth: '1440px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
           <div>
-            <strong>SeriesX Studio 2.0</strong> — End-to-End Vertical Drama AI Production Platform
+            <strong style={{ color: 'var(--teal-primary)' }}>SeriesX Studio 2.0</strong> — End-to-End Vertical Drama AI Production Platform
           </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '16px', color: 'var(--text-dim)' }}>
             <span>9:16 UHD Pipeline</span>
             <span>Character Face-Lock Active</span>
             <span>Virtual Product Placement (VPP)</span>

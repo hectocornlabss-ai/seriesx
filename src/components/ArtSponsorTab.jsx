@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, ShieldCheck, Eye, Sparkles, Box, CheckCircle2, AlertCircle, Smartphone } from 'lucide-react';
+import { DollarSign, ShieldCheck, Eye, Sparkles, Box, CheckCircle2, AlertCircle, Smartphone, Award, Heart, MessageCircle, Share2 } from 'lucide-react';
 
 export default function ArtSponsorTab({ sponsorProduct }) {
   const [showSafeZoneOverlay, setShowSafeZoneOverlay] = useState(true);
@@ -7,20 +7,16 @@ export default function ArtSponsorTab({ sponsorProduct }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 0' }}>
       {/* Header and Value Proposition */}
-      <div className="glass-panel" style={{
-        padding: '24px',
-        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(139, 92, 246, 0.08))',
-        border: '1px solid rgba(245, 158, 11, 0.35)'
-      }}>
+      <div className="clay-card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={20} color="#fbbf24" />
-              <h2 style={{ fontSize: '1.25rem', color: '#ffffff', margin: 0 }}>
+              <Award size={20} strokeWidth={2} color="var(--teal-primary)" />
+              <h2 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
                 Virtual Product Placement Hub (ระบบแทรกสินค้าสปอนเซอร์อัจฉริยะ)
               </h2>
             </div>
-            <p style={{ fontSize: '0.85rem', color: '#fef3c7', marginTop: '6px' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '6px' }}>
               ระบบ AI แทรกสินค้าสปอนเซอร์เข้ากับบทและฉากอย่างแนบเนียน พร้อมตรวจจับ Safe Zone ไม่ให้ไอคอนแอปบังสินค้า 100%
             </p>
           </div>
@@ -28,11 +24,11 @@ export default function ArtSponsorTab({ sponsorProduct }) {
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>รายได้จากสปอนเซอร์ตอนที่ 1:</div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#34d399', fontFamily: 'var(--font-display)' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--teal-primary)', fontFamily: 'var(--font-display)' }}>
                 ฿{sponsorProduct.sponsorRevenueTHB.toLocaleString()} THB
               </div>
             </div>
-            <span className="badge badge-amber">{sponsorProduct.contractTier}</span>
+            <span className="badge badge-teal">{sponsorProduct.contractTier}</span>
           </div>
         </div>
       </div>
@@ -41,13 +37,14 @@ export default function ArtSponsorTab({ sponsorProduct }) {
       <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: '24px' }}>
         {/* Left Column: Sponsor Asset Profile */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="glass-panel" style={{ padding: '20px' }}>
+          <div className="clay-card" style={{ padding: '20px' }}>
             <div style={{
-              borderRadius: '12px',
+              borderRadius: 'var(--radius-md)',
               overflow: 'hidden',
               marginBottom: '16px',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
-              position: 'relative'
+              border: '1px solid var(--border-subtle)',
+              position: 'relative',
+              boxShadow: 'var(--shadow-raised-sm)'
             }}>
               <img
                 src={sponsorProduct.heroImage}
@@ -58,33 +55,38 @@ export default function ArtSponsorTab({ sponsorProduct }) {
                 position: 'absolute',
                 top: '12px',
                 right: '12px',
-                background: 'rgba(0,0,0,0.8)',
+                background: 'rgba(255, 255, 255, 0.95)',
                 padding: '4px 10px',
-                borderRadius: '20px',
-                color: '#fbbf24',
+                borderRadius: 'var(--radius-pill)',
+                color: 'var(--teal-primary)',
                 fontSize: '0.75rem',
                 fontWeight: 700,
-                border: '1px solid rgba(245, 158, 11, 0.5)'
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
               }}>
-                🌟 Official Drama Partner
+                <Award size={13} strokeWidth={2} />
+                <span>Official Partner</span>
               </div>
             </div>
 
-            <h3 style={{ fontSize: '1.15rem', color: '#ffffff', margin: 0 }}>
+            <h3 style={{ fontSize: '1.15rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
               {sponsorProduct.productName}
             </h3>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               แบรนด์: <strong>{sponsorProduct.brand}</strong> | หมวด: {sponsorProduct.category}
             </p>
-            <p style={{ fontSize: '0.85rem', color: '#fbbf24', marginTop: '8px', fontStyle: 'italic' }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--teal-primary)', marginTop: '8px', fontStyle: 'italic', fontWeight: 500 }}>
               "{sponsorProduct.tagline}"
             </p>
 
             <div style={{
               marginTop: '16px',
-              background: 'rgba(0,0,0,0.3)',
-              borderRadius: '8px',
-              padding: '12px',
+              background: 'var(--bg-inset)',
+              boxShadow: 'var(--shadow-inset)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '12px 14px',
               display: 'flex',
               flexDirection: 'column',
               gap: '8px',
@@ -92,15 +94,15 @@ export default function ArtSponsorTab({ sponsorProduct }) {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>เป้าหมายเวลาแอร์ไทม์:</span>
-                <strong style={{ color: '#fff' }}>{sponsorProduct.targetScreenTimeSec}s</strong>
+                <strong style={{ color: 'var(--text-main)' }}>{sponsorProduct.targetScreenTimeSec}s</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>เวลาแอร์ไทม์จริงใน Shot 03:</span>
-                <strong style={{ color: '#34d399' }}>{sponsorProduct.actualScreenTimeSec}s (+0.3s)</strong>
+                <strong style={{ color: 'var(--accent-green)' }}>{sponsorProduct.actualScreenTimeSec}s (+0.3s)</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-muted)' }}>คาดการณ์ยอดคนดู (Reach):</span>
-                <strong style={{ color: '#60a5fa' }}>{sponsorProduct.estimatedAudienceViews}</strong>
+                <strong style={{ color: 'var(--teal-primary)' }}>{sponsorProduct.estimatedAudienceViews}</strong>
               </div>
             </div>
           </div>
@@ -109,33 +111,25 @@ export default function ArtSponsorTab({ sponsorProduct }) {
         {/* Right Column: Safe-Zone Live Simulator & Scene Placement */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Safe-Zone Interactive Viewer */}
-          <div className="glass-panel" style={{ padding: '24px' }}>
+          <div className="clay-card" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', color: '#ffffff', margin: 0 }}>
-                  📱 9:16 Vertical Safe-Zone Validator (การจำลองเลเยอร์ TikTok / Reels)
-                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Smartphone size={18} strokeWidth={2} color="var(--teal-primary)" />
+                  <h3 style={{ fontSize: '1.05rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
+                    9:16 Vertical Safe-Zone Validator (การจำลองเลเยอร์โซเชียลมีเดีย)
+                  </h3>
+                </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                   ตรวจสอบว่าตำแหน่งสินค้าสปอนเซอร์และหน้าตัวละคร ไม่โดนปุ่ม Like, คอมเมนต์, หรือคำบรรยายบัง
                 </p>
               </div>
               <button
                 onClick={() => setShowSafeZoneOverlay(!showSafeZoneOverlay)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  borderRadius: '6px',
-                  background: showSafeZoneOverlay ? 'rgba(244, 63, 94, 0.2)' : 'rgba(255, 255, 255, 0.08)',
-                  border: showSafeZoneOverlay ? '1px solid #f43f5e' : '1px solid var(--border-subtle)',
-                  color: showSafeZoneOverlay ? '#fb7185' : 'var(--text-muted)',
-                  fontSize: '0.78rem',
-                  fontWeight: 600
-                }}
+                className="btn-secondary"
               >
-                <Smartphone size={14} />
-                {showSafeZoneOverlay ? 'ซ่อน Overlay โซเชียล' : 'แสดง TikTok Overlay'}
+                <Smartphone size={14} strokeWidth={2} />
+                <span>{showSafeZoneOverlay ? 'ซ่อน Overlay โซเชียล' : 'แสดง TikTok Overlay'}</span>
               </button>
             </div>
 
@@ -147,9 +141,9 @@ export default function ArtSponsorTab({ sponsorProduct }) {
                 height: '460px',
                 borderRadius: '24px',
                 overflow: 'hidden',
-                boxShadow: '0 12px 40px rgba(0, 0, 0, 0.8)',
-                border: '4px solid #1e2230',
-                background: '#000'
+                boxShadow: 'var(--shadow-raised)',
+                border: '4px solid var(--border-subtle)',
+                background: '#000000'
               }}>
                 <img
                   src="/assets/sponsor_serum.jpg"
@@ -164,7 +158,7 @@ export default function ArtSponsorTab({ sponsorProduct }) {
                   left: '16px',
                   right: '65px',
                   bottom: '90px',
-                  border: '2px dashed rgba(16, 185, 129, 0.7)',
+                  border: '2px dashed var(--accent-green)',
                   borderRadius: '12px',
                   pointerEvents: 'none',
                   display: 'flex',
@@ -174,16 +168,17 @@ export default function ArtSponsorTab({ sponsorProduct }) {
                 }}>
                   <span style={{
                     fontSize: '0.65rem',
-                    color: '#34d399',
-                    background: 'rgba(0,0,0,0.7)',
+                    color: 'var(--accent-green)',
+                    background: 'rgba(255, 255, 255, 0.9)',
                     padding: '2px 6px',
-                    borderRadius: '4px'
+                    borderRadius: '4px',
+                    fontWeight: 700
                   }}>
                     Safe Zone 100%
                   </span>
                 </div>
 
-                {/* Simulated Social Overlay */}
+                {/* Simulated Social Overlay with SVG Icons (NO EMOJIS) */}
                 {showSafeZoneOverlay && (
                   <div style={{
                     position: 'absolute',
@@ -202,15 +197,15 @@ export default function ArtSponsorTab({ sponsorProduct }) {
                       display: 'flex',
                       justifyContent: 'center',
                       gap: '16px',
-                      color: 'rgba(255,255,255,0.8)',
+                      color: 'rgba(255,255,255,0.9)',
                       fontSize: '0.75rem',
                       fontWeight: 600
                     }}>
                       <span>กำลังติดตาม</span>
-                      <span style={{ color: '#fff', borderBottom: '2px solid #fff' }}>สำหรับคุณ</span>
+                      <span style={{ color: '#FFFFFF', borderBottom: '2px solid #FFFFFF' }}>สำหรับคุณ</span>
                     </div>
 
-                    {/* Right Side Social Action Icons */}
+                    {/* Right Side Social Action SVG Icons */}
                     <div style={{
                       alignSelf: 'flex-end',
                       display: 'flex',
@@ -220,22 +215,28 @@ export default function ArtSponsorTab({ sponsorProduct }) {
                       color: '#ffffff'
                     }}>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>❤️</div>
-                        <div style={{ fontSize: '0.6rem', marginTop: '2px' }}>142K</div>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Heart size={16} strokeWidth={2} fill="#ffffff" color="#ffffff" />
+                        </div>
+                        <div style={{ fontSize: '0.62rem', marginTop: '2px', fontWeight: 600 }}>142K</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>💬</div>
-                        <div style={{ fontSize: '0.6rem', marginTop: '2px' }}>3,890</div>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <MessageCircle size={16} strokeWidth={2} color="#ffffff" />
+                        </div>
+                        <div style={{ fontSize: '0.62rem', marginTop: '2px', fontWeight: 600 }}>3,890</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem' }}>↗️</div>
-                        <div style={{ fontSize: '0.6rem', marginTop: '2px' }}>18K</div>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Share2 size={16} strokeWidth={2} color="#ffffff" />
+                        </div>
+                        <div style={{ fontSize: '0.62rem', marginTop: '2px', fontWeight: 600 }}>18K</div>
                       </div>
                     </div>
 
                     {/* Bottom Caption Safe Zone */}
-                    <div style={{ color: '#fff', fontSize: '0.7rem', background: 'rgba(0,0,0,0.4)', padding: '6px 8px', borderRadius: '6px' }}>
-                      <strong style={{ color: '#fb7185' }}>@SeriesX_Studio</strong>
+                    <div style={{ color: '#fff', fontSize: '0.7rem', background: 'rgba(0,0,0,0.55)', padding: '6px 8px', borderRadius: '6px' }}>
+                      <strong style={{ color: '#FFFFFF' }}>@SeriesX_Studio</strong>
                       <div style={{ marginTop: '2px', opacity: 0.9 }}>
                         EP 01: ความลับที่ไม่เคยเปิดเผย... #เงารัตติกาล #ซีรีส์สั้น
                       </div>
@@ -248,31 +249,32 @@ export default function ArtSponsorTab({ sponsorProduct }) {
               <div style={{ flex: 1, minWidth: '280px' }}>
                 <div style={{
                   padding: '16px',
-                  borderRadius: '10px',
-                  background: 'rgba(16, 185, 129, 0.1)',
-                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--accent-green-bg)',
+                  border: '1px solid rgba(31, 122, 89, 0.3)',
                   marginBottom: '14px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', fontWeight: 700, fontSize: '0.9rem' }}>
-                    <ShieldCheck size={18} />
-                    ตำแหน่งปลอดภัย ไม่โดนไอคอนบัง (Safe Zone Verified)
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-green)', fontWeight: 700, fontSize: '0.9rem' }}>
+                    <ShieldCheck size={18} strokeWidth={2} />
+                    <span>ตำแหน่งปลอดภัย ไม่โดนไอคอนบัง (Safe Zone Verified)</span>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#cbd5e1', marginTop: '6px', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
                     ขวดเซรั่มตั้งอยู่ในแนวแกนกึ่งกลาง (Center Pivot) เว้นระยะห่างจากขอบขวา 65px และขอบล่าง 90px ปลอดภัยจากแผงปุ่ม Like/Share ของ TikTok 100%
                   </p>
                 </div>
 
                 <div style={{
                   padding: '16px',
-                  borderRadius: '10px',
-                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-inset)',
+                  boxShadow: 'var(--shadow-inset)',
                   border: '1px solid var(--border-subtle)',
                   fontSize: '0.82rem',
-                  color: '#cbd5e1',
+                  color: 'var(--text-main)',
                   lineHeight: 1.6
                 }}>
-                  <strong style={{ color: '#fff' }}>บทบาทในเนื้อเรื่อง (Narrative Justification):</strong>
-                  <p style={{ margin: '6px 0 0 0' }}>{sponsorProduct.placementNotes}</p>
+                  <strong style={{ color: 'var(--teal-primary)' }}>บทบาทในเนื้อเรื่อง (Narrative Justification):</strong>
+                  <p style={{ margin: '6px 0 0 0', color: 'var(--text-muted)' }}>{sponsorProduct.placementNotes}</p>
                 </div>
               </div>
             </div>

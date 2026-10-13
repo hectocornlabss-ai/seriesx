@@ -1,38 +1,49 @@
 :root {
-  --bg-primary: #08090d;
-  --bg-secondary: #0f1118;
-  --bg-card: rgba(18, 21, 30, 0.85);
-  --bg-card-hover: rgba(26, 31, 45, 0.95);
-  --bg-glass: rgba(15, 17, 24, 0.75);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(244, 63, 94, 0.4);
-  --border-glow: rgba(99, 102, 241, 0.35);
+  /* Warm Claymorphism / Neumorphic Palette (Image 2 Spec) */
+  --bg-base: #F6F3EC;
+  --bg-surface: #FAF7F2;
+  --bg-raised: #FFFFFF;
+  --bg-inset: #EBE5DB;
+  --bg-pressed: #E4DDD1;
 
-  --accent-red: #f43f5e;
-  --accent-purple: #8b5cf6;
-  --accent-blue: #3b82f6;
-  --accent-cyan: #06b6d4;
-  --accent-amber: #f59e0b;
-  --accent-green: #10b981;
+  --border-subtle: #E2DBD0;
+  --border-card: #E5DFC8;
+  --border-focus: #0B4A51;
 
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --text-dim: #64748b;
+  /* Primary Accent: Deep Petrol Teal from Image 2 */
+  --teal-primary: #0B4A51;
+  --teal-hover: #07383E;
+  --teal-active: #052A2F;
+  --teal-subtle: #E3ECEB;
+  --teal-border: #135E67;
+
+  /* Status Tokens */
+  --accent-green: #1F7A59;
+  --accent-green-bg: #E8F5EF;
+  --accent-amber: #B46B18;
+  --accent-amber-bg: #FDF3E7;
+  --accent-red: #B93848;
+  --accent-red-bg: #FDEEF0;
+
+  /* Typography Colors */
+  --text-main: #1D2425;
+  --text-muted: #5E6968;
+  --text-dim: #8B9594;
 
   --font-sans: 'Plus Jakarta Sans', 'Prompt', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display: 'Outfit', 'Prompt', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.7);
-  --shadow-glow: 0 0 20px rgba(244, 63, 94, 0.25);
-  --shadow-blue-glow: 0 0 25px rgba(59, 130, 246, 0.2);
+  /* Neumorphic Shadows matching Image 2 */
+  --shadow-raised: 4px 6px 16px rgba(190, 180, 160, 0.28), -4px -4px 14px rgba(255, 255, 255, 0.95);
+  --shadow-raised-sm: 2px 4px 10px rgba(190, 180, 160, 0.22), -2px -2px 8px rgba(255, 255, 255, 0.9);
+  --shadow-inset: inset 2px 3px 6px rgba(180, 170, 150, 0.32), inset -2px -2px 6px rgba(255, 255, 255, 0.95);
+  --shadow-teal-btn: 0 4px 14px rgba(11, 74, 81, 0.28);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
 }
 
 * {
@@ -42,7 +53,7 @@
 }
 
 html, body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-base);
   color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -56,45 +67,166 @@ html, body {
   flex-direction: column;
 }
 
-/* Custom Scrollbars */
+/* Custom Scrollbars in Warm Clay */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-base);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: #D8D1C4;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #C4BCAD;
 }
 
 /* Typography Helpers */
 h1, h2, h3, h4, .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
+  color: var(--text-main);
 }
 
-/* Animations */
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.8;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(244, 63, 94, 0.4);
-  }
+/* Neumorphic Clay Panels */
+.clay-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
 }
 
+.clay-card-inset {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inset);
+}
+
+/* Neumorphic Primary Button (Image 2: Deep Teal Capsule) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: var(--radius-pill);
+  background: var(--teal-primary);
+  color: #FFFFFF !important;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-teal-btn);
+  transition: all 0.18s ease-in-out;
+}
+
+.btn-primary:hover {
+  background: var(--teal-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(11, 74, 81, 0.35);
+}
+
+.btn-primary:active {
+  background: var(--teal-active);
+  transform: translateY(1px);
+}
+
+/* Neumorphic Secondary / Soft Raised Button */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-raised-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease-in-out;
+}
+
+.btn-secondary:hover {
+  background: #FFFFFF;
+  border-color: #D3CBC0;
+}
+
+/* Neumorphic Inset Input / Textarea */
+.clay-input {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inset);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.88rem;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.clay-input:focus {
+  border-color: var(--border-focus);
+}
+
+/* Badges (Image 2 style) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-teal {
+  background: var(--teal-primary);
+  color: #FFFFFF;
+}
+
+.badge-teal-subtle {
+  background: var(--teal-subtle);
+  color: var(--teal-primary);
+  border: 1px solid rgba(11, 74, 81, 0.2);
+}
+
+.badge-sand {
+  background: #E8E2D6;
+  color: var(--text-muted);
+  border: 1px solid #DAD3C6;
+}
+
+.badge-green {
+  background: var(--accent-green-bg);
+  color: var(--accent-green);
+  border: 1px solid rgba(31, 122, 89, 0.25);
+}
+
+.badge-amber {
+  background: var(--accent-amber-bg);
+  color: var(--accent-amber);
+  border: 1px solid rgba(180, 107, 24, 0.25);
+}
+
+.badge-red {
+  background: var(--accent-red-bg);
+  color: var(--accent-red);
+  border: 1px solid rgba(185, 56, 72, 0.25);
+}
+
+/* Animation */
 @keyframes floatIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -103,71 +235,5 @@ h1, h2, h3, h4, .font-display {
 }
 
 .animate-fade-in {
-  animation: floatIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Glassmorphism card */
-.glass-panel {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-}
-
-.glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.14);
-}
-
-/* Button Reset & Base */
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
-  color: inherit;
-  outline: none;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Badges */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.badge-red {
-  background: rgba(244, 63, 94, 0.15);
-  color: #fb7185;
-  border: 1px solid rgba(244, 63, 94, 0.3);
-}
-
-.badge-green {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.badge-amber {
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.badge-blue {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.badge-purple {
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  animation: floatIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

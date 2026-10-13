@@ -1,16 +1,25 @@
 import React from 'react';
-import { Film, Sparkles, CheckCircle2, AlertTriangle, Layers, Download, SlidersHorizontal } from 'lucide-react';
+import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock } from 'lucide-react';
 
 export default function Header({ project, activeTab, setActiveTab, onExportPitchDeck, qaStatus }) {
+  const tabs = [
+    { id: 'writers', label: '1. Writers Room', sub: 'Hook 96/100', icon: PenTool },
+    { id: 'character', label: '2. Casting & Character Bible', sub: 'Face-Lock 98.7%', icon: UserCheck },
+    { id: 'art', label: '3. Art & Sponsor Vault (VPP)', sub: 'LUMIÈRE', icon: Package },
+    { id: 'pipeline', label: '4. Video & Audio Engine', sub: '9:16 UHD', icon: Camera },
+    { id: 'qa', label: '5. Dual QA Gate', sub: qaStatus === 'APPROVED' ? 'Approved' : 'Review', icon: ShieldCheck },
+    { id: 'pitch', label: '6. Commercial Pitch & Export', sub: 'Deck Ready', icon: FileText }
+  ];
+
   return (
     <header style={{
       borderBottom: '1px solid var(--border-subtle)',
-      background: 'rgba(8, 9, 13, 0.92)',
-      backdropFilter: 'blur(20px)',
+      background: 'var(--bg-surface)',
+      boxShadow: '0 4px 16px rgba(190, 180, 160, 0.15)',
       position: 'sticky',
       top: 0,
       zIndex: 50,
-      padding: '12px 24px',
+      padding: '14px 24px 12px 24px',
     }}>
       <div style={{
         display: 'flex',
@@ -20,40 +29,40 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
         gap: '16px'
       }}>
         {/* Brand & Series Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             width: '42px',
             height: '42px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #f43f5e 0%, #8b5cf6 100%)',
+            background: 'var(--teal-primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 20px rgba(244, 63, 94, 0.35)'
+            boxShadow: 'var(--shadow-teal-btn)'
           }}>
-            <Film size={22} color="#ffffff" />
+            <Film size={22} color="#FFFFFF" strokeWidth={2} />
           </div>
 
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 style={{
                 fontSize: '1.25rem',
                 fontWeight: 700,
-                color: '#ffffff',
+                color: 'var(--text-main)',
                 letterSpacing: '-0.02em',
                 margin: 0
               }}>
                 SeriesX Studio
               </h1>
-              <span className="badge badge-red" style={{ fontSize: '0.7rem' }}>
-                9:16 VERTICAL ENGINE
+              <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
+                9:16 VERTICAL
               </span>
-              <span className="badge badge-purple" style={{ fontSize: '0.7rem' }}>
+              <span className="badge badge-sand" style={{ fontSize: '0.68rem', padding: '3px 8px' }}>
                 AI MULTI-AGENT
               </span>
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              ซีรีส์: <strong style={{ color: '#fff' }}>{project.title}</strong> — {project.episodeTitle}
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+              ซีรีส์: <strong style={{ color: 'var(--text-main)' }}>{project.title}</strong> — {project.episodeTitle}
             </p>
           </div>
         </div>
@@ -64,9 +73,10 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            padding: '6px 14px',
-            borderRadius: '20px',
+            background: 'var(--bg-inset)',
+            boxShadow: 'var(--shadow-inset)',
+            padding: '7px 14px',
+            borderRadius: 'var(--radius-pill)',
             border: '1px solid var(--border-subtle)',
             fontSize: '0.8rem'
           }}>
@@ -74,53 +84,40 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: qaStatus === 'APPROVED' ? '#10b981' : '#f59e0b',
-              boxShadow: qaStatus === 'APPROVED' ? '0 0 10px #10b981' : '0 0 10px #f59e0b'
+              backgroundColor: qaStatus === 'APPROVED' ? 'var(--accent-green)' : 'var(--accent-amber)',
+              boxShadow: qaStatus === 'APPROVED' ? '0 0 6px rgba(31, 122, 89, 0.6)' : '0 0 6px rgba(180, 107, 24, 0.6)'
             }} />
-            <span style={{ color: 'var(--text-muted)' }}>สถานะโปรเจกต์:</span>
-            <strong style={{ color: qaStatus === 'APPROVED' ? '#34d399' : '#fbbf24' }}>
+            <span style={{ color: 'var(--text-muted)' }}>สถานะ:</span>
+            <strong style={{ color: qaStatus === 'APPROVED' ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
               {qaStatus === 'APPROVED' ? 'Director Approved (พร้อมส่งมอบ)' : 'In Quality Review Gate'}
             </strong>
           </div>
 
           <button
             onClick={() => setActiveTab('pitch')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.2), rgba(139, 92, 246, 0.2))',
-              border: '1px solid rgba(244, 63, 94, 0.4)',
-              color: '#ffffff',
-              fontSize: '0.85rem',
-              fontWeight: 600
-            }}
+            className="btn-primary"
           >
-            <Sparkles size={16} color="#f43f5e" />
-            Sponsor & Pitch Deck
+            <Sparkles size={16} strokeWidth={2} />
+            <span>Sponsor & Pitch Deck</span>
           </button>
         </div>
       </div>
 
-      {/* Department Tabs Bar */}
+      {/* Navigation Tabs (Image 2 style: Inset track with white raised pills) */}
       <nav style={{
         display: 'flex',
-        gap: '6px',
-        marginTop: '16px',
+        gap: '4px',
+        marginTop: '14px',
+        padding: '4px',
+        background: 'var(--bg-inset)',
+        borderRadius: 'var(--radius-pill)',
+        boxShadow: 'var(--shadow-inset)',
         overflowX: 'auto',
-        paddingBottom: '4px'
+        border: '1px solid var(--border-subtle)'
       }}>
-        {[
-          { id: 'writers', label: '1. Writers Room (บท & 3s Hook)', badge: 'Hook: 96/100' },
-          { id: 'character', label: '2. Casting & Character Bible', badge: 'Face-Lock 98.7%' },
-          { id: 'art', label: '3. Art & Sponsor Vault (VPP)', badge: 'Sponsor: LUMIÈRE' },
-          { id: 'pipeline', label: '4. Video & Audio Engine', badge: '9:16 UHD' },
-          { id: 'qa', label: '5. Dual QA Gate (AI + Director)', badge: qaStatus === 'APPROVED' ? 'APPROVED' : 'Awaiting Sign-off' },
-          { id: 'pitch', label: '6. Commercial Pitch & Export', badge: 'Deck Ready' }
-        ].map(tab => {
+        {tabs.map(tab => {
           const isActive = activeTab === tab.id;
+          const Icon = tab.icon;
           return (
             <button
               key={tab.id}
@@ -129,26 +126,30 @@ export default function Header({ project, activeTab, setActiveTab, onExportPitch
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                padding: '8px 16px',
-                borderRadius: '8px',
+                padding: '7px 16px',
+                borderRadius: 'var(--radius-pill)',
                 fontSize: '0.82rem',
                 fontWeight: isActive ? 600 : 500,
                 whiteSpace: 'nowrap',
-                background: isActive ? 'rgba(244, 63, 94, 0.15)' : 'transparent',
-                color: isActive ? '#ffffff' : 'var(--text-muted)',
-                border: isActive ? '1px solid rgba(244, 63, 94, 0.5)' : '1px solid transparent',
-                cursor: 'pointer'
+                background: isActive ? 'var(--bg-raised)' : 'transparent',
+                color: isActive ? 'var(--teal-primary)' : 'var(--text-muted)',
+                boxShadow: isActive ? 'var(--shadow-raised-sm)' : 'none',
+                border: isActive ? '1px solid var(--border-subtle)' : '1px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
             >
+              <Icon size={15} strokeWidth={2} color={isActive ? 'var(--teal-primary)' : 'var(--text-muted)'} />
               <span>{tab.label}</span>
               <span style={{
-                fontSize: '0.7rem',
-                padding: '2px 6px',
-                borderRadius: '10px',
-                background: isActive ? 'rgba(244, 63, 94, 0.3)' : 'rgba(255, 255, 255, 0.06)',
-                color: isActive ? '#fecdd3' : 'var(--text-dim)'
+                fontSize: '0.68rem',
+                padding: '2px 7px',
+                borderRadius: 'var(--radius-pill)',
+                background: isActive ? 'var(--teal-subtle)' : 'rgba(0, 0, 0, 0.05)',
+                color: isActive ? 'var(--teal-primary)' : 'var(--text-dim)',
+                fontWeight: 600
               }}>
-                {tab.badge}
+                {tab.sub}
               </span>
             </button>
           );

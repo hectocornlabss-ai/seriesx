@@ -123,7 +123,7 @@ export const initialProductionData = {
         vocalCurve: "เริ่มจากกระซิบสั่น 140Hz สู่การตะโกนคอแห้ง 260Hz พร้อมเสียงลมหายใจหอบหลังพูดจบ"
       },
       location: "ห้องประชุมกระจกชั้น 48 ท่ามกลางพายุฝนยามค่ำ",
-      lighting: "Cinematic Teal & Orange, Rim Light จากวิวตึกระฟ้า",
+      lighting: "Cinematic Teal & Warm Gold, Rim Light จากวิวตึกระฟ้า",
       sfx: "Thunderclap rumble, rain lashing on window pane, stifled breath intake",
       bgm: "Dark cinematic low cello swell with dissonant violin screech",
       qaStatus: "PASS",
@@ -261,28 +261,28 @@ export const initialProductionData = {
     checks: [
       {
         id: "chk-acting",
-        category: "Actor Micro-Expressions & FACS Realism (สีหน้า ท่าทาง และน้ำตา)",
+        category: "Actor Micro-Expressions & FACS Realism",
         score: 98.9,
         status: "PASS",
         details: "ตรวจพบการเคลื่อนไหวกล้ามเนื้อใบหน้าสมจริง (AU1 คิ้วขมวด, AU20 ปากล่างสั่นระริก, หยดน้ำตาไหลเป็นทางอย่างเป็นธรรมชาติ ไม่แข็งทื่อ)"
       },
       {
         id: "chk-camera",
-        category: "9:16 Vertical Cinematography & Camera Movement (มุมกล้อง)",
+        category: "9:16 Vertical Cinematography & Camera Movement",
         score: 99.2,
         status: "PASS",
         details: "การจัดมุมกล้องแนวตั้ง 85mm Slow Push-in และ Low Angle Dutch Tilt สอดรับกับอารมณ์ดราม่าและไม่หลุด Safe Zone"
       },
       {
         id: "chk-voice",
-        category: "Voice Prosody, Micro-Breath & Emotion Fidelity (เสียงพูดสื่ออารมณ์)",
+        category: "Voice Prosody, Micro-Breath & Emotion Fidelity",
         score: 98.5,
         status: "PASS",
         details: "การออกเสียงภาษาไทยมีมิติอารมณ์สมบูรณ์แบบ ทั้งเสียงสั่นเครือ (Tremor), ลมหายใจสะอื้น (Stifled Gasp) และการทอดเสียงทุ้มต่ำ"
       },
       {
         id: "chk-face",
-        category: "Face & Character Consistency (ความต่อเนื่องโครงหน้า)",
+        category: "Face & Character Consistency",
         score: 98.7,
         status: "PASS",
         details: "ใบหน้ารินและทาดาโอะตรงกับ Character Bible 98.7% ไม่พบอาการ Morphing ระหว่างเปลี่ยนมุมกล้อง"
@@ -298,7 +298,7 @@ export const initialProductionData = {
     directorReview: {
       isApproved: false,
       approvedBy: "ผู้กำกับ ณัฐวุฒิ (Director)",
-      directorNote: "การแสดงใน Shot 01 น้ำตาที่เอ่อคลอเบ้ากับริมฝีปากที่สั่นสะกดอารมณ์ได้ทรงพลังมาก! มุมกล้อง Low Angle ใน Shot 02 เสริมความอำมหิตของทาดาโอะได้ยอดเยี่ยม เสียงกระซิบปนลมหายใจใน Shot 04 ทำให้คนดูลุ้นจนลืมหายใจ!",
+      directorNote: "การแสดงใน Shot 01 น้ำตาที่เอ่อคลอเบ้ากับริมฝีปากที่สั่นสะกดอารมณ์ได้ทรงพลังมาก มุมกล้อง Low Angle ใน Shot 02 เสริมความอำมหิตของทาดาโอะได้ยอดเยี่ยม เสียงกระซิบปนลมหายใจใน Shot 04 ทำให้คนดูลุ้นจนลืมหายใจ",
       revisionHistory: [
         {
           version: "v1.0",
