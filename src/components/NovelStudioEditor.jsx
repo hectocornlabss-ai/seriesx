@@ -147,7 +147,8 @@ export default function NovelStudioEditor({
 
   // View Modes & Sidebar State
   const [focusMode, setFocusMode] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState('comments'); // 'comments' | 'ai' | 'split'
+  const [leftSidebarTab, setLeftSidebarTab] = useState('chapters'); // 'chapters' | 'characters'
+  const [rightPanelTab, setRightPanelTab] = useState('comments'); // 'comments' | 'ai' | 'split' | 'characters'
   const [activeCommentId, setActiveCommentId] = useState(null);
   const [commentFilter, setCommentFilter] = useState('all');
 
@@ -376,6 +377,19 @@ export default function NovelStudioEditor({
     const dialogueHtml = `<p style="margin: 14px 0; padding-left: 14px; border-left: 3px solid var(--teal-primary); color: #1E293B; text-indent: 0; font-style: normal;">"..."</p><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;"><br></p>`;
     document.execCommand('insertHTML', false, dialogueHtml);
     handleEditorInput();
+  };
+
+  // Insert Named Character Dialogue directly into manuscript & tag character
+  const insertCharacterDialogue = (char) => {
+    if (!editorRef.current) return;
+    editorRef.current.focus();
+    const shortName = (char.name || '').split('/')[0].trim();
+    const dialogueHtml = `<p style="margin: 14px 0; padding-left: 14px; border-left: 3px solid var(--teal-primary); color: #1E293B; text-indent: 0; font-style: normal;"><strong style="color: var(--teal-primary);">${shortName}:</strong> "..."</p><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;"><br></p>`;
+    document.execCommand('insertHTML', false, dialogueHtml);
+    handleEditorInput();
+    if (!taggedCharacterIds.includes(char.id)) {
+      setTaggedCharacterIds(prev => [...prev, char.id]);
+    }
   };
 
   // Update Title
@@ -952,155 +966,378 @@ export default function NovelStudioEditor({
             COLUMN 1: VOLUMES & CHAPTERS HIERARCHY (เล่ม/ตอน)
            ======================================================== */}
         {!focusMode && (
-          <div className="clay-card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', minHeight: '820px' }}>
+          <div className="clay-card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', minHeight: '820px' }}>
             
-            {/* Volume Selector */}
-            <div style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Layers size={15} strokeWidth={2} color="var(--teal-primary)" />
-                  <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>เล่ม / ภาค (Volumes)</strong>
-                </div>
-                <button
-                  onClick={() => setShowAddVolumeModal(true)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--teal-primary)',
-                    cursor: 'pointer',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '2px'
-                  }}
-                >
-                  <Plus size={12} strokeWidth={2} />
-                  <span>เพิ่มเล่ม</span>
-                </button>
-              </div>
+            {/* Column 1 Tab Switcher: Chapters vs Characters */}
+            <div style={{
+              display: 'flex',
+              background: 'var(--bg-inset)',
+              padding: '3px',
+              borderRadius: 'var(--radius-pill)',
+              border: '1px solid var(--border-subtle)',
+              marginBottom: '14px',
+              gap: '2px'
+            }}>
+              <button
+                type="button"
+                onClick={() => setLeftSidebarTab('chapters')}
+                style={{
+                  flex: 1,
+                  padding: '6px 4px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  background: leftSidebarTab === 'chapters' ? 'var(--teal-primary)' : 'transparent',
+                  color: leftSidebarTab === 'chapters' ? '#FFFFFF' : 'var(--text-main)',
+                  fontWeight: leftSidebarTab === 'chapters' ? 700 : 500,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <BookOpen size={12} strokeWidth={2} />
+                <span>ตอน & เล่ม ({chapters.length})</span>
+              </button>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {volumes.map(vol => {
-                  const isVolActive = vol.id === selectedVolumeId;
-                  const count = chapters.filter(c => c.volumeId === vol.id).length;
-                  return (
-                    <div
-                      key={vol.id}
-                      onClick={() => {
-                        setSelectedVolumeId(vol.id);
-                        const firstCh = chapters.find(c => c.volumeId === vol.id);
-                        if (firstCh) setActiveChapterId(firstCh.id);
-                      }}
+              <button
+                type="button"
+                onClick={() => setLeftSidebarTab('characters')}
+                id="btn-sidebar-characters-tab"
+                style={{
+                  flex: 1,
+                  padding: '6px 4px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  background: leftSidebarTab === 'characters' ? 'var(--teal-primary)' : 'transparent',
+                  color: leftSidebarTab === 'characters' ? '#FFFFFF' : 'var(--text-main)',
+                  fontWeight: leftSidebarTab === 'characters' ? 700 : 500,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Users size={12} strokeWidth={2} />
+                <span>ตัวละคร ({currentCharacters.length})</span>
+              </button>
+            </div>
+
+            {/* VIEW 1: CHAPTERS & VOLUMES */}
+            {leftSidebarTab === 'chapters' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                {/* Volume Selector */}
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Layers size={15} strokeWidth={2} color="var(--teal-primary)" />
+                      <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>เล่ม / ภาค (Volumes)</strong>
+                    </div>
+                    <button
+                      onClick={() => setShowAddVolumeModal(true)}
                       style={{
-                        padding: '8px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: isVolActive ? 'var(--teal-primary)' : 'var(--bg-inset)',
-                        color: isVolActive ? '#FFFFFF' : 'var(--text-main)',
-                        fontSize: '0.76rem',
-                        fontWeight: isVolActive ? 700 : 500,
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--teal-primary)',
                         cursor: 'pointer',
+                        fontSize: '0.74rem',
+                        fontWeight: 700,
                         display: 'flex',
-                        justifyContent: 'space-between',
                         alignItems: 'center',
-                        border: isVolActive ? 'none' : '1px solid var(--border-subtle)',
-                        boxShadow: isVolActive ? 'var(--shadow-teal-btn)' : 'none'
+                        gap: '2px'
                       }}
                     >
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {vol.title}
-                      </span>
-                      <span style={{
-                        fontSize: '0.68rem',
-                        padding: '1px 5px',
-                        borderRadius: '10px',
-                        background: isVolActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-surface)'
-                      }}>
-                        {count} ตอน
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                      <Plus size={12} strokeWidth={2} />
+                      <span>เพิ่มเล่ม</span>
+                    </button>
+                  </div>
 
-            {/* Chapters TOC Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0 8px 0', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <BookOpen size={15} strokeWidth={2} color="var(--teal-primary)" />
-                <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>สารบัญรายตอน</strong>
-              </div>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{filteredChapters.length} ตอน</span>
-            </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {volumes.map(vol => {
+                      const isVolActive = vol.id === selectedVolumeId;
+                      const count = chapters.filter(c => c.volumeId === vol.id).length;
+                      return (
+                        <div
+                          key={vol.id}
+                          onClick={() => {
+                            setSelectedVolumeId(vol.id);
+                            const firstCh = chapters.find(c => c.volumeId === vol.id);
+                            if (firstCh) setActiveChapterId(firstCh.id);
+                          }}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isVolActive ? 'var(--teal-primary)' : 'var(--bg-inset)',
+                            color: isVolActive ? '#FFFFFF' : 'var(--text-main)',
+                            fontSize: '0.76rem',
+                            fontWeight: isVolActive ? 700 : 500,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            border: isVolActive ? 'none' : '1px solid var(--border-subtle)',
+                            boxShadow: isVolActive ? 'var(--shadow-teal-btn)' : 'none'
+                          }}
+                        >
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {vol.title}
+                          </span>
+                          <span style={{
+                            fontSize: '0.68rem',
+                            padding: '1px 5px',
+                            borderRadius: '10px',
+                            background: isVolActive ? 'rgba(255,255,255,0.2)' : 'var(--bg-surface)'
+                          }}>
+                            {count} ตอน
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-            {/* Chapter Items List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '580px', paddingRight: '4px' }}>
-              {filteredChapters.map(ch => {
-                const isActive = ch.id === currentChapter.id;
-                const cmtsCount = (ch.comments || []).length;
-                return (
-                  <div
-                    key={ch.id}
-                    onClick={() => setActiveChapterId(ch.id)}
+                {/* Chapters TOC Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '10px 0 8px 0', borderTop: '1px solid var(--border-subtle)', paddingTop: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <BookOpen size={15} strokeWidth={2} color="var(--teal-primary)" />
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>สารบัญรายตอน</strong>
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>{filteredChapters.length} ตอน</span>
+                </div>
+
+                {/* Chapter Items List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '520px', paddingRight: '4px' }}>
+                  {filteredChapters.map(ch => {
+                    const isActive = ch.id === currentChapter.id;
+                    const cmtsCount = (ch.comments || []).length;
+                    return (
+                      <div
+                        key={ch.id}
+                        onClick={() => setActiveChapterId(ch.id)}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          background: isActive ? 'var(--bg-raised)' : 'var(--bg-surface)',
+                          border: isActive ? '2px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                          boxShadow: isActive ? 'var(--shadow-raised)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: isActive ? 'var(--teal-primary)' : 'var(--text-main)', lineHeight: 1.3 }}>
+                          {ch.title}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '0.7rem' }}>
+                          <span style={{ color: 'var(--text-dim)' }}>
+                            {(ch.wordCount || 0).toLocaleString()} คำ
+                          </span>
+                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                            {cmtsCount > 0 && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '2px', color: 'var(--teal-primary)', fontWeight: 700, fontSize: '0.65rem' }}>
+                                <MessageSquare size={10} strokeWidth={2} />
+                                {cmtsCount}
+                              </span>
+                            )}
+                            <span className={ch.status === "พร้อมแปลงเป็นบท" ? "badge badge-teal" : "badge badge-sand"} style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                              {ch.status}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Add Chapter / Split Actions */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+                  <button
+                    onClick={handleAddChapter}
+                    className="btn-secondary"
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
+                  >
+                    <Plus size={14} strokeWidth={2} />
+                    <span>เพิ่มตอนใหม่ในเล่มนี้</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setRightPanelTab('split');
+                      setFocusMode(false);
+                      if (!splitResults.length) handleGenerateEpisodeSplit();
+                    }}
+                    className="btn-secondary"
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.76rem', color: 'var(--teal-primary)', borderColor: 'var(--teal-subtle)' }}
+                  >
+                    <Sparkles size={13} strokeWidth={2} color="var(--teal-primary)" />
+                    <span>AI วิเคราะห์แบ่งตอนอัตโนมัติ</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* VIEW 2: CHARACTERS IN THIS STORY ROSTER */
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Users size={15} strokeWidth={2} color="var(--teal-primary)" />
+                    <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>ตัวละครในเรื่อง ({currentCharacters.length})</strong>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCharacterModal(true)}
+                    id="btn-add-char-sidebar"
                     style={{
-                      padding: '10px 12px',
-                      borderRadius: 'var(--radius-md)',
-                      background: isActive ? 'var(--bg-raised)' : 'var(--bg-surface)',
-                      border: isActive ? '2px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
-                      boxShadow: isActive ? 'var(--shadow-raised)' : 'none',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--teal-primary)',
                       cursor: 'pointer',
-                      transition: 'all 0.15s'
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '2px'
                     }}
                   >
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: isActive ? 'var(--teal-primary)' : 'var(--text-main)', lineHeight: 1.3 }}>
-                      {ch.title}
-                    </div>
+                    <Plus size={12} strokeWidth={2} />
+                    <span>เพิ่มตัวละคร</span>
+                  </button>
+                </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', fontSize: '0.7rem' }}>
-                      <span style={{ color: 'var(--text-dim)' }}>
-                        {(ch.wordCount || 0).toLocaleString()} คำ
-                      </span>
-                      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                        {cmtsCount > 0 && (
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '2px', color: 'var(--teal-primary)', fontWeight: 700, fontSize: '0.65rem' }}>
-                            <MessageSquare size={10} strokeWidth={2} />
-                            {cmtsCount}
-                          </span>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                  คลิก "+ใส่บทพูด" เพื่อแทรกชื่อและบทพูดลงในเนื้อหา หรือคลิก "แท็กเข้า AI" เพื่อให้ AI รู้จักตัวละครในฉากนี้
+                </p>
+
+                {/* Character Cards List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, maxHeight: '580px', paddingRight: '4px' }}>
+                  {currentCharacters.map(char => {
+                    const isTagged = taggedCharacterIds.includes(char.id);
+                    const shortName = (char.name || '').split('/')[0].trim();
+                    return (
+                      <div
+                        key={char.id}
+                        style={{
+                          padding: '10px',
+                          borderRadius: 'var(--radius-md)',
+                          background: isTagged ? 'rgba(11, 74, 81, 0.05)' : 'var(--bg-surface)',
+                          border: isTagged ? '1.5px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                          boxShadow: isTagged ? 'var(--shadow-raised-sm)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={char.portrait}
+                            alt=""
+                            style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid var(--border-subtle)', flexShrink: 0 }}
+                          />
+                          <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                              <strong style={{ fontSize: '0.8rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {shortName}
+                              </strong>
+                              {isTagged && (
+                                <span className="badge badge-teal" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                                  ในฉาก AI
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {char.role}
+                            </div>
+                          </div>
+                        </div>
+
+                        {char.voiceProfile?.tone && (
+                          <div style={{ fontSize: '0.66rem', color: 'var(--teal-primary)', background: 'var(--bg-inset)', padding: '2px 6px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            เสียง: {char.voiceProfile.tone}
+                          </div>
                         )}
-                        <span className={ch.status === "พร้อมแปลงเป็นบท" ? "badge badge-teal" : "badge badge-sand"} style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
-                          {ch.status}
-                        </span>
+
+                        <div style={{ display: 'flex', gap: '5px', marginTop: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCharacterTag(char.id)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 6px',
+                              borderRadius: 'var(--radius-pill)',
+                              background: isTagged ? 'var(--teal-primary)' : 'var(--bg-inset)',
+                              color: isTagged ? '#FFFFFF' : 'var(--text-main)',
+                              border: isTagged ? 'none' : '1px solid var(--border-subtle)',
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '3px'
+                            }}
+                            title={isTagged ? "ยกเลิกแท็กในฉาก AI" : "แท็กให้ AI รู้จักตัวละครนี้"}
+                          >
+                            {isTagged ? <Check size={11} strokeWidth={3} /> : <Plus size={11} strokeWidth={2} />}
+                            <span>{isTagged ? 'ในฉากแล้ว' : 'แท็กเข้า AI'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => insertCharacterDialogue(char)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 6px',
+                              borderRadius: 'var(--radius-pill)',
+                              background: 'var(--bg-surface)',
+                              border: '1px solid var(--teal-primary)',
+                              color: 'var(--teal-primary)',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '3px'
+                            }}
+                            title="แทรกบรรทัดบทพูดลงในหน้านิยาย"
+                          >
+                            <Quote size={11} strokeWidth={2} />
+                            <span>+ ใส่บทพูด</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
 
-            {/* Add Chapter / Split Actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
-              <button
-                onClick={handleAddChapter}
-                className="btn-secondary"
-                style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
-              >
-                <Plus size={14} strokeWidth={2} />
-                <span>เพิ่มตอนใหม่ในเล่มนี้</span>
-              </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCharacterModal(true)}
+                    className="btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
+                  >
+                    <Plus size={14} strokeWidth={2} />
+                    <span>+ สร้างตัวละครใหม่ในเรื่องนี้</span>
+                  </button>
 
-              <button
-                onClick={() => {
-                  setRightPanelTab('split');
-                  setFocusMode(false);
-                  if (!splitResults.length) handleGenerateEpisodeSplit();
-                }}
-                className="btn-secondary"
-                style={{ width: '100%', justifyContent: 'center', fontSize: '0.76rem', color: 'var(--teal-primary)', borderColor: 'var(--teal-subtle)' }}
-              >
-                <Sparkles size={13} strokeWidth={2} color="var(--teal-primary)" />
-                <span>AI วิเคราะห์แบ่งตอนอัตโนมัติ</span>
-              </button>
-            </div>
+                  {onOpenCharacterBible && (
+                    <button
+                      type="button"
+                      onClick={onOpenCharacterBible}
+                      className="btn-secondary"
+                      style={{ width: '100%', justifyContent: 'center', fontSize: '0.74rem', color: 'var(--teal-primary)' }}
+                    >
+                      <ExternalLink size={12} strokeWidth={2} />
+                      <span>เปิดดู Character Bible ทั้งหมด</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1109,6 +1346,113 @@ export default function NovelStudioEditor({
            ======================================================== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', width: '100%' }}>
           
+          {/* Quick Scene Characters & AI Context Bar */}
+          <div className="clay-card" style={{
+            width: '100%',
+            maxWidth: '860px',
+            padding: '8px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            background: 'var(--bg-surface)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1, overflowX: 'auto', paddingBottom: '2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, fontSize: '0.74rem', fontWeight: 700, color: 'var(--teal-primary)' }}>
+                <Users size={14} strokeWidth={2} />
+                <span>ตัวละครในเรื่อง:</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {currentCharacters.map(char => {
+                  const isTagged = taggedCharacterIds.includes(char.id);
+                  const shortName = (char.name || '').split('/')[0].trim();
+                  return (
+                    <div
+                      key={char.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '3px 8px 3px 4px',
+                        borderRadius: 'var(--radius-pill)',
+                        background: isTagged ? 'rgba(11, 74, 81, 0.12)' : 'var(--bg-inset)',
+                        border: isTagged ? '1.5px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                        fontSize: '0.72rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                      title={`${char.name} (${char.role})\nคลิกชื่อเพื่อแท็กเข้า AI / คลิกปุ่มพูดเพื่อใส่บท`}
+                    >
+                      <img
+                        src={char.portrait}
+                        alt=""
+                        style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                      <span
+                        onClick={() => handleToggleCharacterTag(char.id)}
+                        style={{
+                          fontWeight: isTagged ? 700 : 500,
+                          color: isTagged ? 'var(--teal-primary)' : 'var(--text-main)',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {shortName}
+                        {isTagged && ' ✓'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          insertCharacterDialogue(char);
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--teal-primary)',
+                          cursor: 'pointer',
+                          padding: '0 2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontSize: '0.68rem',
+                          fontWeight: 700
+                        }}
+                        title={`แทรกบทพูดของ ${shortName}`}
+                      >
+                        <Quote size={11} strokeWidth={2} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+              <button
+                type="button"
+                onClick={() => setShowNewCharacterModal(true)}
+                className="btn-secondary"
+                id="btn-quick-bar-add-char"
+                style={{ padding: '3px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px' }}
+                title="เพิ่มตัวละครใหม่ในนิยายเรื่องนี้"
+              >
+                <Plus size={11} strokeWidth={2} />
+                <span>+ ตัวละคร</span>
+              </button>
+
+              {onOpenCharacterBible && (
+                <button
+                  type="button"
+                  onClick={onOpenCharacterBible}
+                  className="btn-secondary"
+                  style={{ padding: '3px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '3px', color: 'var(--teal-primary)' }}
+                  title="เปิดดู Character Bible ละเอียดครบทุกมุม"
+                >
+                  <ExternalLink size={11} strokeWidth={2} />
+                  <span>Bible</span>
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* ========================================================
               FULL GOOGLE DOCS FORMATTING TOOLBAR
              ======================================================== */}
@@ -1995,6 +2339,30 @@ export default function NovelStudioEditor({
               >
                 <Split size={12} strokeWidth={2} />
                 <span>AI แบ่งตอน</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRightPanelTab('characters')}
+                id="btn-right-tab-characters"
+                style={{
+                  flex: 1,
+                  padding: '6px 4px',
+                  borderRadius: 'var(--radius-pill)',
+                  border: 'none',
+                  background: rightPanelTab === 'characters' ? 'var(--teal-primary)' : 'transparent',
+                  color: rightPanelTab === 'characters' ? '#FFFFFF' : 'var(--text-main)',
+                  fontWeight: rightPanelTab === 'characters' ? 700 : 500,
+                  fontSize: '0.72rem',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Users size={12} strokeWidth={2} />
+                <span>ตัวละคร ({currentCharacters.length})</span>
               </button>
             </div>
 
@@ -2891,6 +3259,178 @@ export default function NovelStudioEditor({
                     </button>
                   </div>
                 )}
+
+              </div>
+            )}
+
+            {/* TAB CONTENT 4: CHARACTERS ROSTER & AI SCENE CONTEXT */}
+            {rightPanelTab === 'characters' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+                
+                <div style={{ background: 'rgba(11, 74, 81, 0.05)', padding: '10px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--teal-subtle)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--teal-primary)', fontWeight: 700, fontSize: '0.8rem' }}>
+                      <Users size={14} strokeWidth={2} />
+                      <span>ตัวละครประจำเรื่อง ({currentCharacters.length})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewCharacterModal(true)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--teal-primary)',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}
+                    >
+                      <Plus size={12} strokeWidth={2} />
+                      <span>เพิ่มตัวละคร</span>
+                    </button>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    AI ผู้ช่วยแต่งจะดึงน้ำเสียง ท่าทาง และความสัมพันธ์ของตัวละครที่ถูก "แท็กในฉาก" ไปแต่งบทและคำพูด
+                  </p>
+                </div>
+
+                {/* Character Profile Cards */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', flex: 1, maxHeight: '580px', paddingRight: '4px' }}>
+                  {currentCharacters.map(char => {
+                    const isTagged = taggedCharacterIds.includes(char.id);
+                    const shortName = (char.name || '').split('/')[0].trim();
+                    return (
+                      <div
+                        key={char.id}
+                        style={{
+                          padding: '12px',
+                          borderRadius: 'var(--radius-md)',
+                          background: isTagged ? 'rgba(11, 74, 81, 0.06)' : 'var(--bg-surface)',
+                          border: isTagged ? '1.5px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                          boxShadow: isTagged ? 'var(--shadow-raised-sm)' : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <img
+                            src={char.portrait}
+                            alt=""
+                            style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid var(--teal-subtle)', flexShrink: 0 }}
+                          />
+                          <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+                              <strong style={{ fontSize: '0.84rem', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {char.name}
+                              </strong>
+                              {isTagged ? (
+                                <span className="badge badge-teal" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                                  ในฉาก AI ✓
+                                </span>
+                              ) : (
+                                <span className="badge badge-sand" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                                  นอกฉาก
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {char.role}
+                            </div>
+                          </div>
+                        </div>
+
+                        {char.actingStyle && (
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-dim)', background: 'var(--bg-inset)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', lineHeight: 1.35 }}>
+                            <strong style={{ color: 'var(--text-main)' }}>บุคลิกการแสดง:</strong> {char.actingStyle}
+                          </div>
+                        )}
+
+                        {char.voiceProfile?.tone && (
+                          <div style={{ fontSize: '0.68rem', color: 'var(--teal-primary)', background: 'rgba(11, 74, 81, 0.08)', padding: '3px 8px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            🎙️ <strong>น้ำเสียง:</strong> {char.voiceProfile.tone}
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCharacterTag(char.id)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 8px',
+                              borderRadius: 'var(--radius-pill)',
+                              background: isTagged ? 'var(--teal-primary)' : 'var(--bg-inset)',
+                              color: isTagged ? '#FFFFFF' : 'var(--text-main)',
+                              border: isTagged ? 'none' : '1px solid var(--border-subtle)',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            {isTagged ? <Check size={11} strokeWidth={3} /> : <Plus size={11} strokeWidth={2} />}
+                            <span>{isTagged ? 'อยู่ในฉาก AI' : 'แท็กเข้า AI'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => insertCharacterDialogue(char)}
+                            style={{
+                              flex: 1,
+                              padding: '5px 8px',
+                              borderRadius: 'var(--radius-pill)',
+                              background: 'var(--bg-surface)',
+                              border: '1px solid var(--teal-primary)',
+                              color: 'var(--teal-primary)',
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '3px'
+                            }}
+                            title="แทรกบล็อกบทพูดพร้อมชื่อตัวละครลงในหน้าเอกสาร"
+                          >
+                            <Quote size={11} strokeWidth={2} />
+                            <span>+ ใส่บทพูด</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: 'auto', paddingTop: '10px', borderTop: '1px solid var(--border-subtle)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCharacterModal(true)}
+                    className="btn-primary"
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.78rem' }}
+                  >
+                    <Plus size={14} strokeWidth={2} />
+                    <span>+ สร้างตัวละครใหม่ในเรื่องนี้</span>
+                  </button>
+
+                  {onOpenCharacterBible && (
+                    <button
+                      type="button"
+                      onClick={onOpenCharacterBible}
+                      className="btn-secondary"
+                      style={{ width: '100%', justifyContent: 'center', fontSize: '0.74rem', color: 'var(--teal-primary)' }}
+                    >
+                      <ExternalLink size={12} strokeWidth={2} />
+                      <span>เปิดดู Character Bible เต็มระบบ</span>
+                    </button>
+                  )}
+                </div>
 
               </div>
             )}
