@@ -112,7 +112,7 @@ export default function SeriesStructurePage({
               title="กลับไปยังคลังโปรเจ็กต์นิยายทั้งหมด"
             >
               <ArrowLeft size={16} strokeWidth={2.5} />
-              <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
+              <span>กลับไปคลังนิยายทั้งหมด (Projects)</span>
             </button>
 
             <div style={{ borderLeft: '1px solid var(--border-subtle)', paddingLeft: '14px' }}>
@@ -138,7 +138,7 @@ export default function SeriesStructurePage({
               title="ให้ AI ช่วยปรับแต่งพล็อตและกลยุทธ์การดึงดูดคนดู"
             >
               <Sparkles size={15} strokeWidth={2} />
-              <span>{isAiPolishing ? "AI กำลังวิเคราะห์..." : "✨ AI ช่วยเกลา Hook & พล็อต"}</span>
+              <span>{isAiPolishing ? "AI กำลังวิเคราะห์..." : "AI ช่วยเกลา Hook & พล็อต"}</span>
             </button>
 
             {/* Direct Novel Editing (Google Docs) Button */}
@@ -161,7 +161,7 @@ export default function SeriesStructurePage({
               title="เปิดหน้าแต่งนิยายรายตอนในรูปแบบ Google Docs ทันที"
             >
               <Feather size={15} strokeWidth={2.5} />
-              <span>✍️ ไปหน้าแก้ไขนิยาย (Google Docs)</span>
+              <span>ไปหน้าแก้ไขนิยาย (Google Docs)</span>
             </button>
 
             {/* Save & Start Writing in Google Docs */}
@@ -173,7 +173,7 @@ export default function SeriesStructurePage({
               style={{ padding: '8px 22px', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', boxShadow: 'var(--shadow-teal-btn)' }}
             >
               <Check size={16} strokeWidth={2.5} />
-              <span>{isNew ? "✨ สร้างเรื่องและเริ่มแต่งนิยาย" : "💾 บันทึกและเปิดเขียนนิยาย (Google Docs)"}</span>
+              <span>{isNew ? "สร้างเรื่องและเริ่มแต่งนิยาย" : "บันทึกและเปิดเขียนนิยาย (Google Docs)"}</span>
             </button>
           </div>
         </div>
@@ -566,7 +566,7 @@ export default function SeriesStructurePage({
                     title="เปิดแก้ไขบทนี้ในหน้า Google Docs"
                   >
                     <Feather size={12} strokeWidth={2} />
-                    <span>✍️ แก้ไขใน Google Docs</span>
+                    <span>แก้ไขใน Google Docs</span>
                   </button>
                 </div>
               ))}
@@ -578,9 +578,10 @@ export default function SeriesStructurePage({
                 type="button"
                 onClick={onCancel}
                 className="btn-secondary"
-                style={{ fontSize: '0.84rem' }}
+                style={{ fontSize: '0.84rem', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                ← ยกเลิก / กลับไปคลังนิยาย
+                <ArrowLeft size={14} strokeWidth={2} />
+                <span>ยกเลิก / กลับไปคลังนิยาย</span>
               </button>
 
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -609,7 +610,7 @@ export default function SeriesStructurePage({
                   style={{ padding: '9px 24px', fontSize: '0.88rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', boxShadow: 'var(--shadow-teal-btn)' }}
                 >
                   <Check size={16} strokeWidth={2.5} />
-                  <span>{isNew ? "✨ สร้างเรื่องและเริ่มแต่งนิยาย" : "💾 บันทึกโครงสร้างและเปิด Google Docs"}</span>
+                  <span>{isNew ? "สร้างเรื่องและเริ่มแต่งนิยาย" : "บันทึกโครงสร้างและเปิด Google Docs"}</span>
                 </button>
               </div>
             </div>

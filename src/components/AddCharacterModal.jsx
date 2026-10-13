@@ -315,8 +315,9 @@ export default function AddCharacterModal({ isOpen, onClose, onSaveCharacter, se
                 </button>
               </div>
               {apiSaveNotice && (
-                <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 700 }}>
-                  ✓ {apiSaveNotice}
+                <div style={{ fontSize: '0.75rem', color: 'var(--accent-green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Check size={13} strokeWidth={2.5} />
+                  <span>{apiSaveNotice}</span>
                 </div>
               )}
             </div>
@@ -422,7 +423,7 @@ export default function AddCharacterModal({ isOpen, onClose, onSaveCharacter, se
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '0.84rem', whiteSpace: 'nowrap' }}
               >
                 {isGenerating ? <RefreshCw size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                <span>{isGenerating ? 'AI กำลังคิด...' : '✨ สร้างตัวละครทันที'}</span>
+                <span>{isGenerating ? 'AI กำลังคิด...' : 'สร้างตัวละครทันที'}</span>
               </button>
             </div>
 
@@ -434,9 +435,13 @@ export default function AddCharacterModal({ isOpen, onClose, onSaveCharacter, se
                 border: '1px solid var(--accent-green)',
                 color: 'var(--accent-green)',
                 fontSize: '0.76rem',
-                fontWeight: 700
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
               }}>
-                ✓ {genNotice}
+                <Check size={14} strokeWidth={2.5} />
+                <span>{genNotice}</span>
               </div>
             )}
           </div>
@@ -575,10 +580,10 @@ export default function AddCharacterModal({ isOpen, onClose, onSaveCharacter, se
                     type="button"
                     onClick={() => setActorSeed(77100000 + Math.floor(Math.random() * 899999))}
                     className="btn-secondary"
-                    style={{ padding: '4px 8px', fontSize: '0.7rem' }}
+                    style={{ padding: '4px 8px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="สุ่ม Seed ใหม่"
                   >
-                    🎲
+                    <RefreshCw size={13} />
                   </button>
                 </div>
               </div>

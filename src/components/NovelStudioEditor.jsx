@@ -9,7 +9,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered,
   Indent, Outdent, RemoveFormatting, Undo2, Redo2, Search, Replace,
   Scissors, Split, Ruler, X, ChevronUp, Copy, CheckCheck, Eye,
-  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink, Home
+  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink, Home, Volume2
 } from 'lucide-react';
 
 import AddCharacterModal from './AddCharacterModal';
@@ -1431,11 +1431,14 @@ export default function NovelStudioEditor({
                         style={{
                           fontWeight: isTagged ? 700 : 500,
                           color: isTagged ? 'var(--teal-primary)' : 'var(--text-main)',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
                         }}
                       >
                         {shortName}
-                        {isTagged && ' ✓'}
+                        {isTagged && <Check size={11} strokeWidth={2.5} />}
                       </span>
                       <button
                         type="button"
@@ -1980,7 +1983,7 @@ export default function NovelStudioEditor({
                   title="คลุมดำข้อความแล้วคลิกเพื่อให้ AI ช่วยแก้ไขหรือต่อยอดบท"
                 >
                   <Wand2 size={12} strokeWidth={2} />
-                  <span>{hasActiveSelection ? "AI ปรับแก้ที่เลือก ✨" : "AI แก้ไขบท"}</span>
+                  <span>{hasActiveSelection ? "AI ปรับแก้ที่เลือก" : "AI แก้ไขบท"}</span>
                 </button>
               </div>
 
@@ -3367,8 +3370,9 @@ export default function NovelStudioEditor({
                                 {char.name}
                               </strong>
                               {isTagged ? (
-                                <span className="badge badge-teal" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
-                                  ในฉาก AI ✓
+                                <span className="badge badge-teal" style={{ fontSize: '0.62rem', padding: '1px 6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <Check size={9} strokeWidth={2.5} />
+                                  <span>ในฉาก AI</span>
                                 </span>
                               ) : (
                                 <span className="badge badge-sand" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
@@ -3389,8 +3393,9 @@ export default function NovelStudioEditor({
                         )}
 
                         {char.voiceProfile?.tone && (
-                          <div style={{ fontSize: '0.68rem', color: 'var(--teal-primary)', background: 'rgba(11, 74, 81, 0.08)', padding: '3px 8px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            🎙️ <strong>น้ำเสียง:</strong> {char.voiceProfile.tone}
+                          <div style={{ fontSize: '0.68rem', color: 'var(--teal-primary)', background: 'rgba(11, 74, 81, 0.08)', padding: '3px 8px', borderRadius: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Volume2 size={11} strokeWidth={2} />
+                            <span><strong>น้ำเสียง:</strong> {char.voiceProfile.tone}</span>
                           </div>
                         )}
 

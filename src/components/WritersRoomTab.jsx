@@ -213,7 +213,7 @@ export default function WritersRoomTab({
                 title="กลับไปยังคลังโปรเจ็กต์นิยายทั้งหมด"
               >
                 <ArrowLeft size={16} strokeWidth={2.5} />
-                <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
+                <span>กลับไปคลังนิยายทั้งหมด (Projects)</span>
               </button>
 
               <div style={{ width: '1px', height: '28px', background: 'var(--border-subtle)' }} />
@@ -861,7 +861,7 @@ export default function WritersRoomTab({
           title="กลับไปยังคลังโปรเจ็กต์นิยายทั้งหมด"
         >
           <ArrowLeft size={16} strokeWidth={2.5} />
-          <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
+          <span>กลับไปคลังนิยายทั้งหมด (Projects)</span>
         </button>
 
         <button
@@ -1402,9 +1402,13 @@ export default function WritersRoomTab({
                           padding: '2px 8px',
                           borderRadius: 'var(--radius-pill)',
                           border: '1px solid rgba(185, 56, 72, 0.25)',
-                          whiteSpace: 'nowrap'
+                          whiteSpace: 'nowrap',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
                         }}>
-                          ⏳ เหลือเวลา {item.daysRemaining || 7} วัน
+                          <Clock size={11} strokeWidth={2.5} />
+                          <span>เหลือเวลา {item.daysRemaining || 7} วัน</span>
                         </span>
                       </div>
 
