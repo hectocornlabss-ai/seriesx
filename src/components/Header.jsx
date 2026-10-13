@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock, ChevronDown, BookOpen } from 'lucide-react';
 
-export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus }) {
+export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus, onGoHome }) {
   const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
 
   const tabs = [
@@ -32,18 +32,37 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
       }}>
         {/* Brand & Series Title with Book Cover Thumbnail */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', position: 'relative' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            background: 'var(--teal-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-teal-btn)'
-          }}>
+          {/* Home Icon Button (Film reel) */}
+          <button
+            onClick={onGoHome}
+            id="btn-header-home-icon"
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'var(--teal-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 'var(--shadow-teal-btn)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+              outline: 'none',
+              padding: 0
+            }}
+            title="คลิกกลับไปหน้าหลัก (คลังซีรีส์ & ภาพรวม)"
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'scale(1.08)';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(11, 74, 81, 0.45)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'var(--shadow-teal-btn)';
+            }}
+          >
             <Film size={22} color="#FFFFFF" strokeWidth={2} />
-          </div>
+          </button>
 
           {/* Book Cover Thumbnail */}
           <div
@@ -65,13 +84,23 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                color: 'var(--text-main)',
-                letterSpacing: '-0.02em',
-                margin: 0
-              }}>
+              <h1
+                onClick={onGoHome}
+                id="btn-header-home-title"
+                style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                  color: 'var(--text-main)',
+                  letterSpacing: '-0.02em',
+                  margin: 0,
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'color 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--teal-primary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                title="คลิกกลับไปหน้าหลัก (คลังซีรีส์ & ภาพรวม)"
+              >
                 SeriesX Studio
               </h1>
 

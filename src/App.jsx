@@ -13,9 +13,16 @@ export default function App() {
   const [seriesList, setSeriesList] = useState(initialSeriesList);
   const [activeSeriesId, setActiveSeriesId] = useState(initialSeriesList[0].id);
   const [activeTab, setActiveTab] = useState('writers');
+  const [writersSubTab, setWritersSubTab] = useState('novel');
   const [isApproved, setIsApproved] = useState(false);
 
   const activeSeries = seriesList.find(s => s.id === activeSeriesId) || seriesList[0];
+
+  const handleGoHome = () => {
+    setActiveTab('writers');
+    setWritersSubTab('shelf');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const handleSelectSeries = (id) => {
     setActiveSeriesId(id);
@@ -60,6 +67,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onExportPitchDeck={() => setActiveTab('pitch')}
         qaStatus={isApproved ? 'APPROVED' : 'REVIEW'}
+        onGoHome={handleGoHome}
       />
 
       {/* Main Studio Viewport */}
@@ -73,6 +81,9 @@ export default function App() {
             onUpdateSeries={handleUpdateSeries}
             onDeleteSeries={handleDeleteSeries}
             onOpenCharacterBible={() => setActiveTab('character')}
+            activeSubTab={writersSubTab}
+            onSubTabChange={setWritersSubTab}
+            onGoHome={handleGoHome}
           />
         )}
 

@@ -9,7 +9,7 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered,
   Indent, Outdent, RemoveFormatting, Undo2, Redo2, Search, Replace,
   Scissors, Split, Ruler, X, ChevronUp, Copy, CheckCheck, Eye,
-  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink
+  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink, Home
 } from 'lucide-react';
 
 export default function NovelStudioEditor({
@@ -17,7 +17,8 @@ export default function NovelStudioEditor({
   onUpdateSeries,
   onConvertToScreenplay,
   onOpenSeriesSettings,
-  onOpenCharacterBible
+  onOpenCharacterBible,
+  onGoHome
 }) {
   const defaultVolumes = series.volumes || [
     { id: "vol-01", title: "เล่มที่ 1: เพลิงแค้นกลางสายฝน" },
@@ -894,6 +895,20 @@ export default function NovelStudioEditor({
               {focusMode ? <Minimize2 size={14} strokeWidth={2} /> : <Maximize2 size={14} strokeWidth={2} />}
               <span>{focusMode ? "มุมมองปกติ" : "โหมดโฟกัสเขียนยาว"}</span>
             </button>
+
+            {/* Go to Home / Series Library Button */}
+            {onGoHome && (
+              <button
+                onClick={onGoHome}
+                id="btn-editor-go-home"
+                className="btn-secondary"
+                style={{ padding: '6px 12px', fontSize: '0.76rem', color: 'var(--teal-primary)', borderColor: 'var(--teal-primary)' }}
+                title="กลับไปหน้าหลัก (คลังซีรีส์ & ภาพรวม)"
+              >
+                <Home size={14} strokeWidth={2} />
+                <span>กลับหน้าหลัก</span>
+              </button>
+            )}
 
             {/* Link to Series Master Settings (Non-popup!) */}
             {onOpenSeriesSettings && (

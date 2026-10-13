@@ -10,9 +10,19 @@ export default function WritersRoomTab({
   onAddSeries,
   onUpdateSeries,
   onDeleteSeries,
-  onOpenCharacterBible
+  onOpenCharacterBible,
+  activeSubTab,
+  onSubTabChange,
+  onGoHome
 }) {
-  const [subTab, setSubTab] = useState('novel'); // 'novel' | 'shelf' | 'structure' | 'new-series' | 'screenplay'
+  const [internalSubTab, setInternalSubTab] = useState(activeSubTab || 'novel');
+  const subTab = activeSubTab || internalSubTab;
+
+  const setSubTab = (newTab) => {
+    setInternalSubTab(newTab);
+    if (onSubTabChange) onSubTabChange(newTab);
+  };
+
   const [activeShotIndex, setActiveShotIndex] = useState(0);
   const [isAiOptimizing, setIsAiOptimizing] = useState(false);
   const [optimizationSuccess, setOptimizationSuccess] = useState('');
@@ -254,6 +264,7 @@ export default function WritersRoomTab({
           }}
           onOpenSeriesSettings={() => setSubTab('structure')}
           onOpenCharacterBible={onOpenCharacterBible}
+          onGoHome={onGoHome}
         />
       )}
 
