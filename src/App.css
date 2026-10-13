@@ -1,0 +1,19 @@
+/* SeriesX Studio Layout & Utility Styles */
+.studio-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px 60px 24px;
+  width: 100%;
+}
+
+.studio-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .studio-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
