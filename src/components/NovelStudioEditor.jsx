@@ -8,14 +8,16 @@ import {
   Bold, Italic, Underline, Strikethrough, Highlighter, Palette, Type,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered,
   Indent, Outdent, RemoveFormatting, Undo2, Redo2, Search, Replace,
-  Scissors, Split, Ruler, X, ChevronUp, Copy, CheckCheck, Eye
+  Scissors, Split, Ruler, X, ChevronUp, Copy, CheckCheck, Eye,
+  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink
 } from 'lucide-react';
 
 export default function NovelStudioEditor({
   series,
   onUpdateSeries,
   onConvertToScreenplay,
-  onOpenSeriesSettings
+  onOpenSeriesSettings,
+  onOpenCharacterBible
 }) {
   const defaultVolumes = series.volumes || [
     { id: "vol-01", title: "เล่มที่ 1: เพลิงแค้นกลางสายฝน" },
@@ -132,8 +134,12 @@ export default function NovelStudioEditor({
   const chapterComments = currentChapter.comments || [];
   const filteredChapters = chapters.filter(c => !c.volumeId || c.volumeId === selectedVolumeId);
 
+  // Series Characters (Scoped strictly to this series)
+  const currentCharacters = series.characters || [];
+
   // Editor Ref & Auto-Save
   const editorRef = useRef(null);
+  const savedSelectionRange = useRef(null);
   const [saveStatus, setSaveStatus] = useState('บันทึกอัตโนมัติแล้ว');
   const [currentWordCount, setCurrentWordCount] = useState(currentChapter.wordCount || 0);
   const [currentCharCount, setCurrentCharCount] = useState(currentChapter.content ? currentChapter.content.length : 0);
@@ -178,11 +184,34 @@ export default function NovelStudioEditor({
 
   // AI Episode & Chapter Splitter States
   const [showAiSplitModal, setShowAiSplitModal] = useState(false);
-  const [splitFormat, setSplitFormat] = useState('vertical'); // 'vertical' (60-90s) | 'webnovel' (1500-2500 words) | 'scenes'
+  const [splitFormat, setSplitFormat] = useState('vertical');
   const [targetSplitCount, setTargetSplitCount] = useState(3);
   const [splitPacing, setSplitPacing] = useState('high-hook');
   const [isAnalyzingSplit, setIsAnalyzingSplit] = useState(false);
   const [splitResults, setSplitResults] = useState([]);
+
+  // ========================================================
+  // NEW: TEXT SELECTION & AI INLINE REWRITE + CHARACTER TAGGING
+  // ========================================================
+  const [selectedSnippet, setSelectedSnippet] = useState(
+    'ริน ลลิตา ยืนกำหมัดแน่นอยู่หน้าโต๊ะทำงานไม้โอ๊คดำ ในมือของเธอคือแฟ้มคดีลับที่มีรอยไหม้เกรียมตรงมุมกระดาษ หัวใจของเธอเต้นระรัวราวกับเสียงฟ้าร้องที่คำรามอยู่ภายนอก แต่ดวงตากลับแน่วแน่ไม่ยอมกะพริบ'
+  );
+  const [hasActiveSelection, setHasActiveSelection] = useState(false);
+  const [aiRewritePrompt, setAiRewritePrompt] = useState('ช่วยแก้ไขเนื้อหานี้ให้ดีหน่อย');
+  const [taggedCharacterIds, setTaggedCharacterIds] = useState(
+    (series.characters || []).slice(0, 2).map(c => c.id)
+  );
+  const [showCharacterPicker, setShowCharacterPicker] = useState(false);
+  const [showNewCharacterModal, setShowNewCharacterModal] = useState(false);
+  const [isAiRewriting, setIsAiRewriting] = useState(false);
+  const [rewrittenResult, setRewrittenResult] = useState('');
+  const [charSuccessNotice, setCharSuccessNotice] = useState('');
+
+  // New Character Form
+  const [newCharName, setNewCharName] = useState('');
+  const [newCharRole, setNewCharRole] = useState('');
+  const [newCharTraits, setNewCharTraits] = useState('');
+  const [newCharVoice, setNewCharVoice] = useState('');
 
   // Sync to Parent
   const syncSeriesData = (updatedChapters, updatedVolumes = volumes) => {
@@ -243,6 +272,20 @@ export default function NovelStudioEditor({
     setTimeout(() => {
       setSaveStatus('บันทึกอัตโนมัติแล้ว');
     }, 600);
+  };
+
+  // Save selection range when user highlights text
+  const handleSelectionChange = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      const text = sel.toString().trim();
+      if (text.length > 0) {
+        savedSelectionRange.current = sel.getRangeAt(0).cloneRange();
+        setSelectedSnippet(text);
+        setHasActiveSelection(true);
+        return;
+      }
+    }
   };
 
   // Google Docs Command Runner
@@ -311,7 +354,7 @@ export default function NovelStudioEditor({
   const handleCaptureSelectionForComment = () => {
     const sel = window.getSelection();
     const text = sel ? sel.toString().trim() : '';
-    setNewCommentTarget(text || "ทั้งย่อหน้า / บริบทปัจจุบัน");
+    setNewCommentTarget(text || selectedSnippet || "ทั้งย่อหน้า / บริบทปัจจุบัน");
     setShowAddCommentForm(true);
     setRightPanelTab('comments');
   };
@@ -476,6 +519,151 @@ export default function NovelStudioEditor({
     }
     editorRef.current.innerHTML = newHtml;
     handleEditorInput();
+  };
+
+  // ========================================================
+  // NEW: CREATE CHARACTER SPECIFIC TO THIS SERIES & AUTO-SYNC
+  // ========================================================
+  const handleCreateNewCharacter = (e) => {
+    if (e) e.preventDefault();
+    if (!newCharName.trim()) return;
+
+    const cleanName = newCharName.trim();
+    const newChar = {
+      id: `char-${Date.now()}`,
+      name: cleanName,
+      role: newCharRole.trim() || 'ตัวละครสมทบ (Supporting Role)',
+      actorSeed: Math.floor(10000000 + Math.random() * 90000000),
+      loraModel: `${cleanName.replace(/\s+/g, '_')}_V1_fp16.safetensors`,
+      loraWeight: 0.88,
+      faceLockAccuracy: "98.5%",
+      portrait: "/assets/rin_portrait.jpg",
+      extremeActingImage: "/assets/rin_extreme_acting.jpg",
+      actingStyle: newCharTraits.trim() || "Dynamic Acting — สื่ออารมณ์ทางสายตาและการเคลื่อนไหว",
+      voiceProfile: {
+        voiceId: `TH-${Date.now().toString().slice(-4)}`,
+        tone: newCharVoice.trim() || "คมชัด ทรงพลัง สื่ออารมณ์ลึกซึ้ง",
+        pitch: "0 semitones",
+        speed: "1.0x",
+        breathIntensity: "0.35",
+        microBreathing: "Auto-insert natural breath on dramatic beats",
+        sampleLine: `นี่ไม่ใช่เรื่องบังเอิญ... ทุกอย่างถูกจัดฉากไว้แล้ว!`
+      },
+      wardrobeSpec: "เครื่องแต่งกายสั่งตัดเฉพาะตัวละคร",
+      description: newCharTraits.trim() || `ตัวละครใหม่ในเรื่อง ${series.title}`,
+      expressionMatrix: [
+        { label: "Neutral (สุขุม)", status: "Locked 100%" },
+        { label: "Tense (ตึงเครียด)", status: "Locked 98%" },
+        { label: "Shock (ตกใจ)", status: "Locked 99%" },
+        { label: "Determined (มุ่งมั่น)", status: "Locked 98%" }
+      ],
+      facsControls: {
+        browInnerRaiser: 0.80,
+        browLowerer: 0.65,
+        lipTremor: 0.50,
+        tearWelling: 0.60,
+        pupilDilation: 0.75,
+        jawTension: 0.70
+      }
+    };
+
+    const updatedCharacters = [...(series.characters || []), newChar];
+    if (onUpdateSeries) {
+      onUpdateSeries({
+        ...series,
+        characters: updatedCharacters
+      });
+    }
+
+    setTaggedCharacterIds(prev => [...prev, newChar.id]);
+    setNewCharName('');
+    setNewCharRole('');
+    setNewCharTraits('');
+    setNewCharVoice('');
+    setShowNewCharacterModal(false);
+    setCharSuccessNotice(`สร้างตัวละคร "${cleanName}" ในเรื่อง "${series.title}" เรียบร้อย พร้อมซิงค์ไปหน้า Character Bible`);
+    setTimeout(() => setCharSuccessNotice(''), 6000);
+  };
+
+  // Toggle Character Tagging
+  const handleToggleCharacterTag = (charId) => {
+    if (taggedCharacterIds.includes(charId)) {
+      setTaggedCharacterIds(taggedCharacterIds.filter(id => id !== charId));
+    } else {
+      setTaggedCharacterIds([...taggedCharacterIds, charId]);
+    }
+  };
+
+  // ========================================================
+  // NEW: EXECUTE AI REWRITE ON SELECTED TEXT + CHARACTERS
+  // ========================================================
+  const handleExecuteAiRewrite = () => {
+    const textToProcess = selectedSnippet || (editorRef.current ? editorRef.current.innerText.slice(0, 300) : '');
+    if (!textToProcess) return;
+
+    setIsAiRewriting(true);
+    setRewrittenResult('');
+
+    const activeChars = (series.characters || []).filter(c => taggedCharacterIds.includes(c.id));
+    const charNames = activeChars.map(c => c.name.split('/')[0].trim()).join(' และ ');
+
+    setTimeout(() => {
+      setIsAiRewriting(false);
+
+      let output = '';
+      if (textToProcess.includes('ริน') || textToProcess.includes('ทาดาโอะ') || activeChars.length > 0) {
+        output = `${textToProcess}
+
+"คุณคิดว่าแฟ้มไหม้เกรียมแผ่นเดียว จะล้มตระกูลคุโรดะได้งั้นเหรอ ริน?" ทาดาโอะ คุโรดะ เปรยขึ้นด้วยน้ำเสียงทุ้มต่ำเย็นยะเยือก เขายังคงไม่ขยับตัว แต่รังสีอำมหิตที่แผ่ออกมาทำให้ห้องประชุมชั้น 48 เย็นยะเยือกยิ่งกว่าพายุฝนภายนอก
+
+รินสูดลมหายใจลึก ก้าวประชิดโต๊ะทำงานอีกก้าว ปลายนิ้วที่แตะขอบแฟ้มยังคงสั่นระริก "มันอาจจะล้มตระกูลคุณไม่ได้ในทันที... แต่ถ้าคืนนี้คุณไม่เซ็นรับรองความบริสุทธิ์ของพ่อฉัน พรุ่งนี้เช้า ประชาชนทุกคนจะได้เห็นว่าความมั่งคั่งของคุโรดะ แลกมาด้วยเลือดของกี่ชีวิต!"`;
+      } else {
+        output = `${textToProcess}
+
+บรรยากาศทวีความตึงเครียดขึ้นในทันที ทุกสายตาจับจ้องมายังจุดศูนย์กลางของห้อง ${charNames ? `[ขับเน้นบทบาทและมิติของ: ${charNames}]` : ''} ความลับที่ถูกซ่อนไว้ใต้เงามืดกำลังจะถูกเปิดเผย และไม่มีใครในที่นี้ที่จะสามารถถอยหลังกลับไปได้อีกแล้ว!`;
+      }
+
+      setRewrittenResult(output);
+    }, 850);
+  };
+
+  // Apply Replace to Document Selection
+  const handleApplyReplaceSelection = () => {
+    if (!rewrittenResult || !editorRef.current) return;
+    editorRef.current.focus();
+
+    if (savedSelectionRange.current) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRange.current);
+    }
+
+    const htmlSnippet = rewrittenResult.split(/\n\n+/).map(p => `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">${p.replace(/\n/g, '<br/>')}</p>`).join('');
+    document.execCommand('insertHTML', false, htmlSnippet);
+    handleEditorInput();
+    setRewrittenResult('');
+    setAiNotice('แทนที่ข้อความเดิมด้วยบทที่ AI ปรับปรุงเรียบร้อยแล้ว');
+    setTimeout(() => setAiNotice(''), 4000);
+  };
+
+  // Apply Insert Below Selection
+  const handleApplyInsertAfter = () => {
+    if (!rewrittenResult || !editorRef.current) return;
+    editorRef.current.focus();
+
+    if (savedSelectionRange.current) {
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRange.current);
+      sel.collapseToEnd();
+    }
+
+    const htmlSnippet = rewrittenResult.split(/\n\n+/).map(p => `<p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;">${p.replace(/\n/g, '<br/>')}</p>`).join('');
+    document.execCommand('insertHTML', false, `<br/>` + htmlSnippet);
+    handleEditorInput();
+    setRewrittenResult('');
+    setAiNotice('แทรกบทที่ AI คิดเพิ่มเติมต่อท้ายข้อความเดิมเรียบร้อยแล้ว');
+    setTimeout(() => setAiNotice(''), 4000);
   };
 
   // AI Co-writer Actions
@@ -739,7 +927,7 @@ export default function NovelStudioEditor({
       {/* 2. MAIN 3-COLUMN WORKSPACE (TOC | GOOGLE DOCS CANVAS | COMMENTS & AI RAIL) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: focusMode ? '1fr' : '260px 1fr 340px',
+        gridTemplateColumns: focusMode ? '1fr' : '260px 1fr 360px',
         gap: '20px',
         alignItems: 'start',
         transition: 'all 0.25s ease'
@@ -887,7 +1075,8 @@ export default function NovelStudioEditor({
 
               <button
                 onClick={() => {
-                  setShowAiSplitModal(true);
+                  setRightPanelTab('split');
+                  setFocusMode(false);
                   if (!splitResults.length) handleGenerateEpisodeSplit();
                 }}
                 className="btn-secondary"
@@ -1372,6 +1561,29 @@ export default function NovelStudioEditor({
                 >
                   <Search size={14} strokeWidth={2} />
                 </button>
+
+                {/* Dedicated Button for AI Text Rewrite */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRightPanelTab('ai');
+                    setFocusMode(false);
+                  }}
+                  className={hasActiveSelection ? "btn-primary" : "btn-secondary"}
+                  style={{
+                    padding: '3px 9px',
+                    fontSize: '0.72rem',
+                    height: '26px',
+                    background: hasActiveSelection ? 'var(--teal-primary)' : 'var(--bg-surface)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                  title="คลุมดำข้อความแล้วคลิกเพื่อให้ AI ช่วยแก้ไขหรือต่อยอดบท"
+                >
+                  <Wand2 size={12} strokeWidth={2} />
+                  <span>{hasActiveSelection ? "AI ปรับแก้ที่เลือก ✨" : "AI แก้ไขบท"}</span>
+                </button>
               </div>
 
               {/* Right Side Tools: Comment Button & Auto-Save */}
@@ -1472,6 +1684,64 @@ export default function NovelStudioEditor({
           </div>
 
           {/* ========================================================
+              FLOATING SELECTION ACTION DOCK (IF TEXT SELECTED)
+             ======================================================== */}
+          {hasActiveSelection && selectedSnippet && (
+            <div style={{
+              width: '100%',
+              maxWidth: '860px',
+              background: 'linear-gradient(135deg, #0B4A51, #08373C)',
+              color: '#FFFFFF',
+              borderRadius: 'var(--radius-pill)',
+              padding: '6px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 6px 18px rgba(11, 74, 81, 0.35)',
+              animation: 'floatIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Sparkles size={15} strokeWidth={2} />
+                <span>
+                  <strong>เลือกข้อความ:</strong> "{selectedSnippet.slice(0, 48)}..."
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRightPanelTab('ai');
+                    setFocusMode(false);
+                  }}
+                  style={{
+                    background: '#FFFFFF',
+                    color: 'var(--teal-primary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-pill)',
+                    padding: '4px 12px',
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <Wand2 size={13} strokeWidth={2} />
+                  <span>สั่ง AI ช่วยแก้ไข / คิดบทเพิ่ม</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHasActiveSelection(false)}
+                  style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: '2px' }}
+                >
+                  <X size={14} strokeWidth={2} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================
               GOOGLE DOCS RULER BAR (ไม้บรรทัดหน้ากระดาษ)
              ======================================================== */}
           <div style={{ width: '100%', maxWidth: '860px', padding: '0 4px' }}>
@@ -1560,6 +1830,8 @@ export default function NovelStudioEditor({
                 contentEditable="true"
                 suppressContentEditableWarning={true}
                 onInput={handleEditorInput}
+                onMouseUp={handleSelectionChange}
+                onKeyUp={handleSelectionChange}
                 style={{
                   minHeight: '720px',
                   outline: 'none',
@@ -2023,26 +2295,386 @@ export default function NovelStudioEditor({
               </div>
             )}
 
-            {/* TAB CONTENT 2: AI CO-WRITER TOOLBOX */}
+            {/* TAB CONTENT 2: AI CO-WRITER & HIGHLIGHT REWRITER */}
             {rightPanelTab === 'ai' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
                 
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-                  เครื่องมือ AI ช่วยต่อเติมเนื้อหา ขัดเกลาบทพูด และวางจังหวะพล็อตซีรีส์แนวตั้ง
-                </p>
+                {/* Notice Banner if character created */}
+                {charSuccessNotice && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--accent-green-bg)',
+                    border: '1px solid rgba(31, 122, 89, 0.3)',
+                    color: 'var(--accent-green)',
+                    fontSize: '0.75rem',
+                    lineHeight: 1.4
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, marginBottom: '2px' }}>
+                      <CheckCircle2 size={13} strokeWidth={2} />
+                      <span>บันทึกตัวละครสำเร็จ</span>
+                    </div>
+                    <div>{charSuccessNotice}</div>
+                    {onOpenCharacterBible && (
+                      <button
+                        onClick={onOpenCharacterBible}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--teal-primary)',
+                          fontWeight: 700,
+                          fontSize: '0.72rem',
+                          cursor: 'pointer',
+                          padding: 0,
+                          marginTop: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                      >
+                        <span>เปิดดูในหน้ากำหนดตัวละคร (Character Bible)</span>
+                        <ArrowUpRight size={12} strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                )}
 
-                {/* AI Action Buttons */}
+                {/* ========================================================
+                    SECTION A: AI SMART TEXT SELECTION REWRITER & EXPANDER
+                   ======================================================== */}
+                <div style={{
+                  background: 'var(--bg-inset)',
+                  boxShadow: 'var(--shadow-inset)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '12px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={15} strokeWidth={2} color="var(--teal-primary)" />
+                      <strong style={{ fontSize: '0.8rem', color: 'var(--teal-primary)' }}>
+                        AI ปรับปรุง & คิดบทเพิ่มจากข้อความที่เลือก
+                      </strong>
+                    </div>
+                    {hasActiveSelection && (
+                      <span className="badge badge-teal" style={{ fontSize: '0.62rem', padding: '1px 6px' }}>
+                        กำลังคลุมดำ
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Quoted Selected Snippet */}
+                  <div style={{
+                    background: 'var(--bg-surface)',
+                    borderLeft: '3px solid var(--teal-primary)',
+                    padding: '8px 10px',
+                    borderRadius: '0 6px 6px 0',
+                    fontSize: '0.72rem',
+                    color: 'var(--text-main)',
+                    fontStyle: 'italic',
+                    maxHeight: '90px',
+                    overflowY: 'auto',
+                    lineHeight: 1.45
+                  }}>
+                    "{selectedSnippet}"
+                  </div>
+
+                  {/* Character Context Selector Section */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        <Users size={12} strokeWidth={2} />
+                        <strong>ตัวละครในฉากนี้ (สำหรับให้ AI คิดบทแม่นยำ):</strong>
+                      </div>
+                      
+                      {/* + Button to open Character Selector */}
+                      <button
+                        type="button"
+                        onClick={() => setShowCharacterPicker(!showCharacterPicker)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--teal-primary)',
+                          cursor: 'pointer',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px'
+                        }}
+                      >
+                        <Plus size={13} strokeWidth={2} />
+                        <span>เลือกตัวละคร</span>
+                      </button>
+                    </div>
+
+                    {/* Active Tagged Characters Pills */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                      {taggedCharacterIds.length === 0 ? (
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)', fontStyle: 'italic' }}>
+                          ยังไม่ได้เลือกตัวละคร (กด + ด้านบนเพื่อเลือกหรือสร้างใหม่)
+                        </span>
+                      ) : (
+                        taggedCharacterIds.map(cId => {
+                          const char = currentCharacters.find(c => c.id === cId);
+                          if (!char) return null;
+                          return (
+                            <span
+                              key={char.id}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                background: 'var(--teal-primary)',
+                                color: '#FFFFFF',
+                                padding: '2px 8px',
+                                borderRadius: 'var(--radius-pill)',
+                                fontSize: '0.68rem',
+                                fontWeight: 600
+                              }}
+                            >
+                              <span>{char.name.split('/')[0].trim()}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleCharacterTag(char.id)}
+                                style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                              >
+                                <X size={10} strokeWidth={2} />
+                              </button>
+                            </span>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {/* Popover: Character Picker & New Character Creator */}
+                    {showCharacterPicker && (
+                      <div style={{
+                        background: '#FFFFFF',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius-md)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        padding: '10px',
+                        marginBottom: '8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
+                          <strong style={{ fontSize: '0.74rem', color: 'var(--text-main)' }}>
+                            เลือกตัวละครในเรื่อง "{series.title}":
+                          </strong>
+                          <button
+                            type="button"
+                            onClick={() => setShowCharacterPicker(false)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}
+                          >
+                            <X size={12} strokeWidth={2} />
+                          </button>
+                        </div>
+
+                        {/* List of existing characters for this series */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto' }}>
+                          {currentCharacters.map(char => {
+                            const isTagged = taggedCharacterIds.includes(char.id);
+                            return (
+                              <div
+                                key={char.id}
+                                onClick={() => handleToggleCharacterTag(char.id)}
+                                style={{
+                                  padding: '5px 8px',
+                                  borderRadius: '6px',
+                                  background: isTagged ? 'var(--teal-subtle)' : 'var(--bg-surface)',
+                                  border: isTagged ? '1px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                <div>
+                                  <strong style={{ color: isTagged ? 'var(--teal-primary)' : 'var(--text-main)' }}>
+                                    {char.name.split('/')[0]}
+                                  </strong>
+                                  <span style={{ fontSize: '0.64rem', color: 'var(--text-dim)', marginLeft: '6px' }}>
+                                    {char.role}
+                                  </span>
+                                </div>
+                                {isTagged && <Check size={12} strokeWidth={2.5} color="var(--teal-primary)" />}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Create New Character Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewCharacterModal(true);
+                            setShowCharacterPicker(false);
+                          }}
+                          className="btn-secondary"
+                          style={{
+                            width: '100%',
+                            fontSize: '0.72rem',
+                            padding: '6px 8px',
+                            justifyContent: 'center',
+                            color: 'var(--teal-primary)',
+                            borderColor: 'var(--teal-subtle)'
+                          }}
+                        >
+                          <UserPlus size={13} strokeWidth={2} />
+                          <span>+ สร้างตัวละครใหม่ในเรื่องนี้</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* AI Instruction Input */}
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>
+                      คำสั่งให้ AI ดำเนินการ (AI Instruction):
+                    </label>
+                    <input
+                      type="text"
+                      value={aiRewritePrompt}
+                      onChange={(e) => setAiRewritePrompt(e.target.value)}
+                      placeholder="เช่น: ช่วยแก้ไขเนื้อหานี้ให้ดีหน่อย..."
+                      style={{
+                        width: '100%',
+                        padding: '6px 8px',
+                        fontSize: '0.75rem',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--border-subtle)',
+                        background: 'var(--bg-surface)',
+                        color: 'var(--text-main)',
+                        fontWeight: 600,
+                        outline: 'none'
+                      }}
+                    />
+
+                    {/* Quick Presets */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '5px' }}>
+                      {[
+                        'ช่วยแก้ไขเนื้อหานี้ให้ดีหน่อย',
+                        'เพิ่มความตึงเครียด & อารมณ์บีบคั้น',
+                        'ขัดเกลาสำนวนและบทบรรยาย',
+                        'คิดบทต่อยอดฉากนี้ทันที'
+                      ].map(preset => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => setAiRewritePrompt(preset)}
+                          style={{
+                            background: aiRewritePrompt === preset ? 'var(--teal-subtle)' : 'var(--bg-surface)',
+                            color: aiRewritePrompt === preset ? 'var(--teal-primary)' : 'var(--text-muted)',
+                            border: '1px solid var(--border-subtle)',
+                            borderRadius: 'var(--radius-pill)',
+                            padding: '2px 7px',
+                            fontSize: '0.64rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {preset}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <button
+                    type="button"
+                    onClick={handleExecuteAiRewrite}
+                    disabled={isAiRewriting}
+                    className="btn-primary"
+                    style={{ width: '100%', fontSize: '0.76rem', padding: '8px 12px', justifyContent: 'center' }}
+                  >
+                    <Wand2 size={14} strokeWidth={2} />
+                    <span>{isAiRewriting ? "AI กำลังคิดบทและปรับแก้..." : "สั่ง AI คิดบทและปรับแก้ทันที"}</span>
+                  </button>
+
+                  {/* Rewritten Result Box & Actions */}
+                  {rewrittenResult && (
+                    <div style={{
+                      background: 'var(--bg-surface)',
+                      border: '1.5px solid var(--teal-primary)',
+                      borderRadius: 'var(--radius-md)',
+                      padding: '10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      animation: 'floatIn 0.2s ease-out'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong style={{ fontSize: '0.74rem', color: 'var(--teal-primary)' }}>
+                          ผลลัพธ์บทที่ AI ปรับปรุง & คิดเพิ่ม:
+                        </strong>
+                        <span className="badge badge-teal" style={{ fontSize: '0.6rem', padding: '1px 5px' }}>
+                          พร้อมใช้งาน
+                        </span>
+                      </div>
+
+                      <div style={{
+                        fontSize: '0.74rem',
+                        color: 'var(--text-main)',
+                        lineHeight: 1.55,
+                        maxHeight: '180px',
+                        overflowY: 'auto',
+                        whiteSpace: 'pre-line',
+                        background: 'var(--bg-inset)',
+                        padding: '8px',
+                        borderRadius: '4px'
+                      }}>
+                        {rewrittenResult}
+                      </div>
+
+                      {/* Action Buttons to Apply */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={handleApplyReplaceSelection}
+                          className="btn-primary"
+                          style={{ fontSize: '0.7rem', padding: '6px 8px', justifyContent: 'center' }}
+                        >
+                          <span>แทนที่ข้อความเดิม</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleApplyInsertAfter}
+                          className="btn-secondary"
+                          style={{ fontSize: '0.7rem', padding: '6px 8px', justifyContent: 'center', borderColor: 'var(--teal-primary)', color: 'var(--teal-primary)' }}
+                        >
+                          <span>แทรกต่อท้ายข้อความเดิม</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+
+                {/* ========================================================
+                    SECTION B: QUICK CONTINUATION & SCENE TOOLS
+                   ======================================================== */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', fontWeight: 700 }}>
+                    เครื่องมือช่วยแต่งแบบคลิกเดียว:
+                  </div>
+
                   <button
                     onClick={() => handleAiAction('continue')}
                     disabled={isAiGenerating}
-                    className="btn-primary"
-                    style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
+                    className="btn-secondary"
+                    style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}
                   >
-                    <Wand2 size={16} strokeWidth={2} />
+                    <Wand2 size={14} strokeWidth={2} color="var(--teal-primary)" />
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>เขียนต่อให้อัตโนมัติ</div>
-                      <div style={{ fontSize: '0.68rem', opacity: 0.85 }}>AI ศึกษาบริบทแล้วแต่งฉากถัดไปให้ต่อเนื่อง</div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)' }}>เขียนฉากต่อไปให้อัตโนมัติ</div>
+                      <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>ศึกษาบริบทแล้วแต่งต่อท้ายเอกสาร</div>
                     </div>
                   </button>
 
@@ -2050,25 +2682,12 @@ export default function NovelStudioEditor({
                     onClick={() => handleAiAction('cliffhanger')}
                     disabled={isAiGenerating}
                     className="btn-secondary"
-                    style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
+                    style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}
                   >
-                    <Zap size={16} strokeWidth={2} color="var(--teal-primary)" />
+                    <Zap size={14} strokeWidth={2} color="var(--teal-primary)" />
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>แทรกจุดหักมุม Cliffhanger</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>กระชากอารมณ์ให้คนดูอยากดูตอนถัดไป</div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleAiAction('atmosphere')}
-                    disabled={isAiGenerating}
-                    className="btn-secondary"
-                    style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
-                  >
-                    <Compass size={16} strokeWidth={2} color="var(--teal-primary)" />
-                    <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>บรรยายฉาก & ประสาทสัมผัส</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>เพิ่มมิติแสง เสียงฝน กลิ่น และความรู้สึก</div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)' }}>แทรกจุดหักมุม Cliffhanger</div>
+                      <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>กระชากอารมณ์ให้คนดูอยากดูตอนถัดไป</div>
                     </div>
                   </button>
 
@@ -2076,91 +2695,25 @@ export default function NovelStudioEditor({
                     onClick={() => handleAiAction('dialogue')}
                     disabled={isAiGenerating}
                     className="btn-secondary"
-                    style={{ width: '100%', justifyContent: 'flex-start', padding: '10px 14px' }}
+                    style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}
                   >
-                    <MessageSquare size={16} strokeWidth={2} color="var(--teal-primary)" />
+                    <MessageSquare size={14} strokeWidth={2} color="var(--teal-primary)" />
                     <div style={{ textAlign: 'left' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-main)' }}>ขัดเกลาบทพูดให้เชือดเฉือน</div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>บทพูดคมคาย สั้นกระชับ ซ่อนเจตนา</div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-main)' }}>ขัดเกลาบทพูดให้เชือดเฉือน</div>
+                      <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>บทพูดกระชับ คมคาย สไตล์ซีรีส์สั้น</div>
                     </div>
                   </button>
                 </div>
 
-                {/* Custom Prompt Box */}
-                <div style={{
-                  background: 'var(--bg-inset)',
-                  boxShadow: 'var(--shadow-inset)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '12px'
-                }}>
-                  <strong style={{ fontSize: '0.78rem', color: 'var(--teal-primary)', display: 'block', marginBottom: '6px' }}>
-                    สั่ง AI แต่งตามต้องการ (Custom Prompt):
-                  </strong>
-                  <textarea
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    placeholder="เช่น: ให้รินเดินเข้าไปเผชิญหน้ากับทาดาโอะ..."
-                    rows={2}
-                    style={{
-                      width: '100%',
-                      background: 'var(--bg-surface)',
-                      border: '1px solid var(--border-subtle)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '8px',
-                      fontSize: '0.75rem',
-                      color: 'var(--text-main)',
-                      resize: 'none',
-                      outline: 'none',
-                      marginBottom: '8px'
-                    }}
-                  />
-                  <button
-                    onClick={() => handleAiAction('custom')}
-                    disabled={isAiGenerating || !customPrompt.trim()}
-                    className="btn-primary"
-                    style={{ width: '100%', fontSize: '0.75rem', padding: '6px 10px', justifyContent: 'center' }}
-                  >
-                    <Wand2 size={13} strokeWidth={2} />
-                    <span>{isAiGenerating ? 'AI กำลังเขียน...' : 'ให้ AI เขียนตามคำสั่ง'}</span>
-                  </button>
-                </div>
-
-                {/* Writing Tone & Tension */}
+                {/* Tension Level Slider */}
                 <div style={{
                   background: 'var(--bg-surface)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 'var(--radius-md)',
                   padding: '12px'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                    <Sliders size={14} strokeWidth={2} color="var(--teal-primary)" />
-                    <strong style={{ fontSize: '0.78rem', color: 'var(--teal-primary)' }}>
-                      ปรับโทนอารมณ์ & ความตึงเครียด
-                    </strong>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
-                    {[
-                      { id: 'dark', label: 'ดาร์กดราม่า / ล้างแค้น (Revenge)' },
-                      { id: 'romance', label: 'โรแมนติกตึงเครียด (Enemies to Lovers)' },
-                      { id: 'mystery', label: 'สืบสวนชิงไหวชิงพริบ (Mind Games)' }
-                    ].map(tone => (
-                      <label key={tone.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-main)', cursor: 'pointer' }}>
-                        <input
-                          type="radio"
-                          name="writing-tone"
-                          checked={selectedTone === tone.id}
-                          onChange={() => setSelectedTone(tone.id)}
-                          style={{ accentColor: 'var(--teal-primary)' }}
-                        />
-                        <span>{tone.label}</span>
-                      </label>
-                    ))}
-                  </div>
-
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                    <span>ความตึงเครียด:</span>
+                    <span>ระดับความตึงเครียด (Tension):</span>
                     <strong style={{ color: 'var(--teal-primary)' }}>ระดับ {tensionLevel}/10</strong>
                   </div>
                   <input
@@ -2333,8 +2886,144 @@ export default function NovelStudioEditor({
       </div>
 
       {/* ========================================================
-          MODAL: AI EPISODE & CHAPTER BREAKDOWN STUDIO
+          MODAL: CREATE NEW CHARACTER FOR THIS SPECIFIC SERIES
          ======================================================== */}
+      {showNewCharacterModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px'
+        }}>
+          <div
+            onClick={() => setShowNewCharacterModal(false)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(25, 20, 15, 0.6)',
+              backdropFilter: 'blur(3px)'
+            }}
+          />
+          <div className="clay-card" style={{
+            position: 'relative',
+            zIndex: 1,
+            background: '#FFFFFF',
+            maxWidth: '520px',
+            width: '100%',
+            padding: '24px',
+            boxShadow: '0 24px 60px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <UserPlus size={18} strokeWidth={2} color="var(--teal-primary)" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                  สร้างตัวละครใหม่ในเรื่อง: {series.title}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewCharacterModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}
+              >
+                <X size={18} strokeWidth={2} />
+              </button>
+            </div>
+
+            <p style={{ margin: '0 0 14px 0', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+              ตัวละครที่สร้างขึ้นนี้จะถูกบันทึก<strong>เฉพาะในเรื่องนี้เท่านั้น</strong> และจะซิงค์ไปยังหน้า <strong>Casting & Character Bible</strong> โดยอัตโนมัติ เพื่อตั้งค่าหน้าตา เสียง และท่าทางต่อไป
+            </p>
+
+            <form onSubmit={handleCreateNewCharacter} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>
+                  ชื่อตัวละคร (เช่น ผู้การชัยวัฒน์, เลขาพิมพ์ชนก): *
+                </label>
+                <input
+                  type="text"
+                  value={newCharName}
+                  onChange={(e) => setNewCharName(e.target.value)}
+                  placeholder="ระบุชื่อตัวละคร..."
+                  className="clay-input"
+                  style={{ width: '100%', fontSize: '0.82rem', padding: '8px 12px' }}
+                  autoFocus
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>
+                  บทบาทในเรื่อง (Role):
+                </label>
+                <input
+                  type="text"
+                  value={newCharRole}
+                  onChange={(e) => setNewCharRole(e.target.value)}
+                  placeholder="เช่น หัวหน้าตำรวจสายสืบสวน, พยานปากเอก, ทายาทตระกูลศัตรู..."
+                  className="clay-input"
+                  style={{ width: '100%', fontSize: '0.82rem', padding: '8px 12px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>
+                  ลักษณะนิสัย / อารมณ์เด่น:
+                </label>
+                <input
+                  type="text"
+                  value={newCharTraits}
+                  onChange={(e) => setNewCharTraits(e.target.value)}
+                  placeholder="เช่น สุขุม เยือกเย็น แววตาดุดัน ซ่อนความลับบางอย่าง..."
+                  className="clay-input"
+                  style={{ width: '100%', fontSize: '0.82rem', padding: '8px 12px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '3px' }}>
+                  โทนเสียง / สไตล์การพูด (Voice):
+                </label>
+                <input
+                  type="text"
+                  value={newCharVoice}
+                  onChange={(e) => setNewCharVoice(e.target.value)}
+                  placeholder="เช่น เสียงแหบทุ้ม พูดช้าแต่ทรงอำนาจ..."
+                  className="clay-input"
+                  style={{ width: '100%', fontSize: '0.82rem', padding: '8px 12px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowNewCharacterModal(false)}
+                  className="btn-secondary"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={!newCharName.trim()}
+                >
+                  <Plus size={14} strokeWidth={2} />
+                  <span>บันทึกตัวละครเข้าเรื่องนี้</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: AI EPISODE & CHAPTER BREAKDOWN STUDIO */}
       {showAiSplitModal && (
         <div style={{
           position: 'fixed',
@@ -2348,7 +3037,6 @@ export default function NovelStudioEditor({
           justifyContent: 'center',
           padding: '24px'
         }}>
-          {/* Backdrop */}
           <div
             onClick={() => setShowAiSplitModal(false)}
             style={{
@@ -2361,7 +3049,6 @@ export default function NovelStudioEditor({
               backdropFilter: 'blur(3px)'
             }}
           />
-          {/* Modal Container */}
           <div className="clay-card" style={{
             position: 'relative',
             zIndex: 1,
@@ -2375,8 +3062,6 @@ export default function NovelStudioEditor({
             overflow: 'hidden',
             boxShadow: '0 24px 60px rgba(0,0,0,0.3)'
           }}>
-            
-            {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--teal-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>
@@ -2401,7 +3086,6 @@ export default function NovelStudioEditor({
               </button>
             </div>
 
-            {/* Split Settings */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px', background: 'var(--bg-inset)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
               <div>
                 <label style={{ fontSize: '0.72rem', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>ประเภทผลงาน:</label>
@@ -2444,7 +3128,6 @@ export default function NovelStudioEditor({
               </div>
             </div>
 
-            {/* Generated Breakdown Results */}
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '6px', marginBottom: '16px' }}>
               {isAnalyzingSplit ? (
                 <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--teal-primary)' }}>
@@ -2494,7 +3177,6 @@ export default function NovelStudioEditor({
               )}
             </div>
 
-            {/* Modal Footer Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', flexWrap: 'wrap', gap: '8px' }}>
               <button
                 type="button"
@@ -2544,15 +3226,25 @@ export default function NovelStudioEditor({
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(30, 25, 20, 0.45)',
-          backdropFilter: 'blur(4px)',
+          zIndex: 99999,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 100,
           padding: '20px'
         }}>
-          <div className="clay-card" style={{ maxWidth: '420px', width: '100%', padding: '24px' }}>
+          <div
+            onClick={() => setShowAddVolumeModal(false)}
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(30, 25, 20, 0.45)',
+              backdropFilter: 'blur(3px)'
+            }}
+          />
+          <div className="clay-card" style={{ position: 'relative', zIndex: 1, background: '#FFFFFF', maxWidth: '420px', width: '100%', padding: '24px' }}>
             <h3 style={{ fontSize: '1.1rem', margin: '0 0 12px 0', fontWeight: 700, color: 'var(--text-main)' }}>
               เพิ่มเล่ม / ภาคใหม่
             </h3>

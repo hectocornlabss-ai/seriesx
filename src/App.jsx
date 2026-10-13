@@ -72,6 +72,7 @@ export default function App() {
             onAddSeries={handleAddSeries}
             onUpdateSeries={handleUpdateSeries}
             onDeleteSeries={handleDeleteSeries}
+            onOpenCharacterBible={() => setActiveTab('character')}
           />
         )}
 

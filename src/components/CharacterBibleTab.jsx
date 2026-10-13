@@ -236,11 +236,11 @@ export default function CharacterBibleTab({ characters }) {
                 <Volume2 size={18} strokeWidth={2} color="var(--teal-primary)" />
                 <h4 style={{ fontSize: '0.92rem', margin: 0, color: 'var(--text-main)', fontWeight: 700 }}>โมเดลเสียงพากย์สื่ออารมณ์ (Emotion TTS)</h4>
               </div>
-              <span className="badge badge-teal-subtle">{character.voiceProfile.voiceId}</span>
+              <span className="badge badge-teal-subtle">{character.voiceProfile?.voiceId || 'TH-Voice-AI'}</span>
             </div>
 
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              <strong>โทนเสียง:</strong> {character.voiceProfile.tone}
+              <strong>โทนเสียง:</strong> {character.voiceProfile?.tone || 'เสียงพากย์ธรรมชาติ สื่ออารมณ์ชัดเจน'}
             </p>
 
             <div style={{
@@ -254,7 +254,7 @@ export default function CharacterBibleTab({ characters }) {
               marginBottom: '14px',
               borderLeft: '3px solid var(--teal-primary)'
             }}>
-              "{character.voiceProfile.sampleLine}"
+              "{character.voiceProfile?.sampleLine || 'นี่คือบททดสอบเสียงของตัวละคร...'}"
             </div>
 
             <button
@@ -321,7 +321,7 @@ export default function CharacterBibleTab({ characters }) {
               gap: '10px',
               marginTop: '16px'
             }}>
-              {character.expressionMatrix.map((expr, idx) => (
+              {(character.expressionMatrix || []).map((expr, idx) => (
                 <div
                   key={idx}
                   style={{

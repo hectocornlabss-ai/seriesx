@@ -9,7 +9,8 @@ export default function WritersRoomTab({
   onSelectSeries,
   onAddSeries,
   onUpdateSeries,
-  onDeleteSeries
+  onDeleteSeries,
+  onOpenCharacterBible
 }) {
   const [subTab, setSubTab] = useState('novel'); // 'novel' | 'shelf' | 'structure' | 'new-series' | 'screenplay'
   const [activeShotIndex, setActiveShotIndex] = useState(0);
@@ -252,6 +253,7 @@ export default function WritersRoomTab({
             setSubTab('screenplay');
           }}
           onOpenSeriesSettings={() => setSubTab('structure')}
+          onOpenCharacterBible={onOpenCharacterBible}
         />
       )}
 
