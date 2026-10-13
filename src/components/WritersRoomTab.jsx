@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, Image as ImageIcon, Feather, Layers, List, Play, Sliders } from 'lucide-react';
+import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, ArrowLeft, Image as ImageIcon, Feather, Layers, List, Play, Sliders } from 'lucide-react';
 import NovelStudioEditor from './NovelStudioEditor';
 import SeriesStructurePage from './SeriesStructurePage';
 
@@ -15,7 +15,7 @@ export default function WritersRoomTab({
   onSubTabChange,
   onGoHome
 }) {
-  const [internalSubTab, setInternalSubTab] = useState(activeSubTab || 'novel');
+  const [internalSubTab, setInternalSubTab] = useState(activeSubTab || 'shelf');
   const subTab = activeSubTab || internalSubTab;
 
   const setSubTab = (newTab) => {
@@ -127,202 +127,204 @@ export default function WritersRoomTab({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '20px 0' }}>
       
-      {/* 0. WRITERS ROOM SUB-NAV BAR (สลับระหว่าง หน้าแต่งนิยาย, คลังภาพปก & โครงสร้างหลัก, และบทซีรีส์ 9:16) */}
-      {/* 0. WRITERS ROOM SUB-NAV BAR (สลับระหว่าง หน้าแต่งนิยาย, คลังภาพปก & โครงเรื่องหลัก, ตั้งค่าโครงสร้างซีรีส์, และบทซีรีส์ 9:16) */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-        <div style={{
-          display: 'inline-flex',
-          background: 'var(--bg-inset)',
-          padding: '6px',
-          borderRadius: 'var(--radius-pill)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-inset)',
-          gap: '6px',
-          flexWrap: 'wrap'
-        }}>
-          <button
-            onClick={() => setSubTab('novel')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 'var(--radius-pill)',
-              background: subTab === 'novel' ? 'var(--teal-primary)' : 'transparent',
-              color: subTab === 'novel' ? '#FFFFFF' : 'var(--text-main)',
-              border: 'none',
-              fontWeight: subTab === 'novel' ? 700 : 500,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: subTab === 'novel' ? 'var(--shadow-teal-btn)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Feather size={16} strokeWidth={2} />
-            <span>1. แต่งนิยาย & ตรวจบท (Novel Studio)</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab('shelf')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 'var(--radius-pill)',
-              background: subTab === 'shelf' ? 'var(--teal-primary)' : 'transparent',
-              color: subTab === 'shelf' ? '#FFFFFF' : 'var(--text-main)',
-              border: 'none',
-              fontWeight: subTab === 'shelf' ? 700 : 500,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: subTab === 'shelf' ? 'var(--shadow-teal-btn)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <BookOpen size={16} strokeWidth={2} />
-            <span>2. คลังภาพปก & ซีรีส์ทั้งหมด (Series Shelf)</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab('structure')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 'var(--radius-pill)',
-              background: (subTab === 'structure' || subTab === 'new-series') ? 'var(--teal-primary)' : 'transparent',
-              color: (subTab === 'structure' || subTab === 'new-series') ? '#FFFFFF' : 'var(--text-main)',
-              border: 'none',
-              fontWeight: (subTab === 'structure' || subTab === 'new-series') ? 700 : 500,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: (subTab === 'structure' || subTab === 'new-series') ? 'var(--shadow-teal-btn)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Sliders size={16} strokeWidth={2} />
-            <span>3. จัดการโครงสร้างซีรีส์ (Structure & Lore)</span>
-          </button>
-
-          <button
-            onClick={() => setSubTab('screenplay')}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 'var(--radius-pill)',
-              background: subTab === 'screenplay' ? 'var(--teal-primary)' : 'transparent',
-              color: subTab === 'screenplay' ? '#FFFFFF' : 'var(--text-main)',
-              border: 'none',
-              fontWeight: subTab === 'screenplay' ? 700 : 500,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              boxShadow: subTab === 'screenplay' ? 'var(--shadow-teal-btn)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Film size={16} strokeWidth={2} />
-            <span>4. บทซีรีส์ 9:16 (Vertical Screenplay)</span>
-          </button>
-        </div>
-
-        {/* Active Series Indicator Badge */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>เรื่องที่ทำงานอยู่:</span>
+      {/* SUB-VIEW 1: NOVEL STUDIO & AI CO-WRITER (DEDICATED SEPARATE PAGE) */}
+      {subTab === 'novel' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Top Breadcrumb & Quick Action Bar */}
           <div style={{
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: '8px',
+            flexWrap: 'wrap',
+            gap: '12px',
             background: 'var(--bg-surface)',
-            padding: '4px 12px 4px 6px',
-            borderRadius: 'var(--radius-pill)',
+            padding: '12px 20px',
+            borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-subtle)',
             boxShadow: 'var(--shadow-raised-sm)'
           }}>
-            <img
-              src={activeSeries.coverUrl}
-              alt=""
-              style={{ width: '22px', height: '30px', objectFit: 'cover', borderRadius: '4px' }}
-            />
-            <strong style={{ fontSize: '0.82rem', color: 'var(--teal-primary)' }}>
-              {activeSeries.title}
-            </strong>
-          </div>
-        </div>
-      </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <button
+                onClick={() => setSubTab('shelf')}
+                id="btn-back-to-shelf"
+                className="btn-secondary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: 'var(--teal-primary)',
+                  borderColor: 'var(--teal-primary)',
+                  background: 'var(--bg-inset)',
+                  cursor: 'pointer'
+                }}
+                title="กลับไปยังคลังโปรเจ็กต์นิยายทั้งหมด"
+              >
+                <ArrowLeft size={16} strokeWidth={2.5} />
+                <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
+              </button>
 
-      {/* SUB-VIEW 1: NOVEL STUDIO & AI CO-WRITER */}
-      {subTab === 'novel' && (
-        <NovelStudioEditor
-          series={activeSeries}
-          onUpdateSeries={onUpdateSeries}
-          onConvertToScreenplay={(chapter) => {
-            setSubTab('screenplay');
-          }}
-          onOpenSeriesSettings={() => setSubTab('structure')}
-          onOpenCharacterBible={onOpenCharacterBible}
-          onGoHome={onGoHome}
-        />
-      )}
+              <div style={{ width: '1px', height: '28px', background: 'var(--border-subtle)' }} />
 
-      {/* SUB-VIEW 2: DEDICATED FULL-PAGE EDIT SERIES STRUCTURE (NON-POPUP) */}
-      {subTab === 'structure' && (
-        <SeriesStructurePage
-          series={activeSeries}
-          isNew={false}
-          onSave={handleSaveStructure}
-          onCancel={() => setSubTab('shelf')}
-        />
-      )}
-
-      {/* SUB-VIEW 3: DEDICATED FULL-PAGE CREATE NEW SERIES (NON-POPUP) */}
-      {subTab === 'new-series' && (
-        <SeriesStructurePage
-          series={null}
-          isNew={true}
-          onSave={handleSaveNewSeries}
-          onCancel={() => setSubTab('shelf')}
-        />
-      )}
-
-      {/* SUB-VIEW 4: SERIES SHELF & MASTER LORE */}
-      {subTab === 'shelf' && (
-        <>
-          {/* 1. TOP SECTION: SERIES LIBRARY & BOOK COVERS SHELF (เพิ่ม / แก้ไข / ลบ เรื่อง) */}
-          <div className="clay-card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <BookOpen size={20} strokeWidth={2} color="var(--teal-primary)" />
-                  <h2 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
-                    คลังซีรีส์ & ภาพปกนิยาย (Series Library & Book Covers)
-                  </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <img
+                  src={activeSeries.coverUrl}
+                  alt=""
+                  style={{ width: '28px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
+                />
+                <div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>กำลังเขียนนิยายเรื่อง:</div>
+                  <strong style={{ fontSize: '1rem', color: 'var(--text-main)' }}>{activeSeries.title}</strong>
                 </div>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              สตูดิโอรองรับการสร้างหลายเรื่องและหลายตัวละคร สามารถสลับเรื่องทำงาน เพิ่มเรื่องใหม่ หรือแก้ไขโครงสร้างนิยายได้อิสระ
-            </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button
+                onClick={() => setSubTab('structure')}
+                className="btn-secondary"
+                style={{ padding: '7px 14px', fontSize: '0.78rem' }}
+                title="เปิดหน้าตั้งค่าโครงสร้างซีรีส์และ Lore"
+              >
+                <Sliders size={14} strokeWidth={2} />
+                <span>โครงสร้างเรื่อง & Lore</span>
+              </button>
+              <button
+                onClick={() => setSubTab('screenplay')}
+                className="btn-secondary"
+                style={{ padding: '7px 14px', fontSize: '0.78rem' }}
+                title="แปลงและดูบทซีรีส์ 9:16"
+              >
+                <Film size={14} strokeWidth={2} />
+                <span>บทซีรีส์ 9:16</span>
+              </button>
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <NovelStudioEditor
+            series={activeSeries}
+            onUpdateSeries={onUpdateSeries}
+            onConvertToScreenplay={(chapter) => {
+              setSubTab('screenplay');
+            }}
+            onOpenSeriesSettings={() => setSubTab('structure')}
+            onOpenCharacterBible={onOpenCharacterBible}
+            onGoHome={() => setSubTab('shelf')}
+          />
+        </div>
+      )}
+
+      {/* SUB-VIEW 2: DEDICATED FULL-PAGE EDIT SERIES STRUCTURE */}
+      {subTab === 'structure' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <button
-              onClick={() => setSubTab('new-series')}
-              className="btn-primary"
+              onClick={() => setSubTab('shelf')}
+              className="btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700 }}
             >
-              <Plus size={16} strokeWidth={2} />
-              <span>สร้างซีรีส์เรื่องใหม่</span>
+              <ArrowLeft size={16} strokeWidth={2.5} />
+              <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
+            </button>
+            <button
+              onClick={() => setSubTab('novel')}
+              className="btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem' }}
+            >
+              <Feather size={16} strokeWidth={2} />
+              <span>เข้าสู่หน้าเขียนนิยาย</span>
             </button>
           </div>
+          <SeriesStructurePage
+            series={activeSeries}
+            isNew={false}
+            onSave={handleSaveStructure}
+            onCancel={() => setSubTab('shelf')}
+          />
         </div>
+      )}
 
-        {/* Series Covers Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          gap: '20px'
-        }}>
+      {/* SUB-VIEW 3: DEDICATED FULL-PAGE CREATE NEW SERIES */}
+      {subTab === 'new-series' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <button
+            onClick={() => setSubTab('shelf')}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, alignSelf: 'flex-start' }}
+          >
+            <ArrowLeft size={16} strokeWidth={2.5} />
+            <span>← ยกเลิก / กลับไปคลังนิยาย</span>
+          </button>
+          <SeriesStructurePage
+            series={null}
+            isNew={true}
+            onSave={handleSaveNewSeries}
+            onCancel={() => setSubTab('shelf')}
+          />
+        </div>
+      )}
+
+      {/* SUB-VIEW 4: MAIN NOVEL PROJECTS & BOOK COVERS SHELF (DEFAULT) */}
+      {subTab === 'shelf' && (
+        <>
+          {/* 1. TOP SECTION: SERIES LIBRARY & BOOK COVERS SHELF (แสดงชื่อนิยาย ภาพปก และปุ่มสร้างเรื่องใหม่) */}
+          <div className="clay-card" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px', flexWrap: 'wrap', gap: '14px' }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '38px',
+                    height: '38px',
+                    borderRadius: '10px',
+                    background: 'var(--teal-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    boxShadow: 'var(--shadow-teal-btn)'
+                  }}>
+                    <BookOpen size={20} strokeWidth={2} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '1.25rem', color: 'var(--text-main)', margin: 0, fontWeight: 800 }}>
+                      โปรเจ็กต์นิยาย & คลังซีรีส์ (Novel Projects & Series)
+                    </h2>
+                    <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                      จัดการนิยายและซีรีส์ทั้งหมดในระบบ แสดงชื่อนิยาย ภาพปก และปุ่มเข้าห้องแต่งนิยาย หรือสร้างเรื่องใหม่ได้ทันที
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setSubTab('new-series')}
+                  id="btn-add-new-series-main"
+                  className="btn-primary"
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '0.88rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(11, 74, 81, 0.35)'
+                  }}
+                >
+                  <Plus size={18} strokeWidth={2.5} />
+                  <span>+ เพิ่มนิยาย / เรื่องใหม่</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Series Covers Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
+              gap: '22px'
+            }}>
           {seriesList.map(item => {
             const isActive = item.id === activeSeries.id;
             return (
@@ -340,11 +342,17 @@ export default function WritersRoomTab({
                 }}
               >
                 {/* Book Cover Image 2:3 */}
-                <div style={{ position: 'relative', height: '240px', background: '#000', overflow: 'hidden' }}>
+                <div
+                  onClick={() => { onSelectSeries(item.id); setSubTab('novel'); }}
+                  style={{ position: 'relative', height: '240px', background: '#000', overflow: 'hidden', cursor: 'pointer' }}
+                  title="คลิกภาพปกเพื่อเข้าสู่ห้องเขียนนิยาย"
+                >
                   <img
                     src={item.coverUrl}
                     alt={item.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                   />
                   {isActive && (
                     <div style={{
@@ -382,7 +390,13 @@ export default function WritersRoomTab({
 
                 {/* Card Content & Metadata */}
                 <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                  <h3 style={{ fontSize: '1rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
+                  <h3
+                    onClick={() => { onSelectSeries(item.id); setSubTab('novel'); }}
+                    style={{ fontSize: '1.05rem', color: 'var(--text-main)', margin: 0, fontWeight: 700, cursor: 'pointer' }}
+                    title="คลิกเพื่อเข้าสู่ห้องเขียนนิยาย"
+                    onMouseEnter={e => e.currentTarget.style.color = 'var(--teal-primary)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-main)'}
+                  >
                     {item.title}
                   </h3>
                   <p style={{ fontSize: '0.75rem', color: 'var(--teal-primary)', marginTop: '2px', fontWeight: 600 }}>
@@ -420,11 +434,11 @@ export default function WritersRoomTab({
                       <button
                         onClick={() => { onSelectSeries(item.id); setSubTab('novel'); }}
                         className="btn-primary"
-                        style={{ padding: '5px 12px', fontSize: '0.72rem' }}
+                        style={{ padding: '6px 14px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
                         title="เปิดหน้าแต่งนิยายรายตอนสำหรับเรื่องนี้"
                       >
-                        <Feather size={12} strokeWidth={2} />
-                        <span>แต่งนิยาย</span>
+                        <Feather size={13} strokeWidth={2} />
+                        <span>เข้าสู่หน้าเขียนนิยาย</span>
                       </button>
 
                       <button
@@ -700,9 +714,54 @@ export default function WritersRoomTab({
     </>
   )}
 
-  {/* SUB-VIEW 3: VERTICAL SCREENPLAY BREAKDOWN (9:16 BEATS) */}
+  {/* SUB-VIEW 5: VERTICAL SCREENPLAY BREAKDOWN (9:16 BEATS) */}
   {subTab === 'screenplay' && (
-    <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Top Breadcrumb Navigation */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '12px',
+        background: 'var(--bg-surface)',
+        padding: '12px 20px',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-raised-sm)'
+      }}>
+        <button
+          onClick={() => setSubTab('shelf')}
+          className="btn-secondary"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            color: 'var(--teal-primary)',
+            borderColor: 'var(--teal-primary)',
+            background: 'var(--bg-inset)',
+            cursor: 'pointer'
+          }}
+          title="กลับไปยังคลังโปรเจ็กต์นิยายทั้งหมด"
+        >
+          <ArrowLeft size={16} strokeWidth={2.5} />
+          <span>← กลับไปคลังนิยายทั้งหมด (Projects)</span>
+        </button>
+
+        <button
+          onClick={() => setSubTab('novel')}
+          className="btn-primary"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem' }}
+        >
+          <Feather size={16} strokeWidth={2} />
+          <span>เข้าสู่หน้าเขียนนิยาย (Novel Studio)</span>
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
         {/* Shots List / Beat Sheet */}
         <div className="clay-card" style={{ padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -909,7 +968,8 @@ export default function WritersRoomTab({
           </div>
         </div>
       </div>
-    )}
     </div>
-  );
+  )}
+  </div>
+);
 }

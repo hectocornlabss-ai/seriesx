@@ -13,7 +13,7 @@ export default function App() {
   const [seriesList, setSeriesList] = useState(initialSeriesList);
   const [activeSeriesId, setActiveSeriesId] = useState(initialSeriesList[0].id);
   const [activeTab, setActiveTab] = useState('writers');
-  const [writersSubTab, setWritersSubTab] = useState('novel');
+  const [writersSubTab, setWritersSubTab] = useState('shelf');
   const [isApproved, setIsApproved] = useState(false);
 
   const activeSeries = seriesList.find(s => s.id === activeSeriesId) || seriesList[0];

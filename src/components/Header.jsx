@@ -238,7 +238,12 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (tab.id === 'writers' && onGoHome) {
+                  onGoHome();
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
