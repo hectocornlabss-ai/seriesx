@@ -88,26 +88,42 @@ export const PRESET_AVATARS = [
 
 export function getOpenRouterApiKey() {
   if (typeof window === 'undefined') return '';
-  return localStorage.getItem('openrouter_api_key') || '';
+  try {
+    return localStorage.getItem('openrouter_api_key') || '';
+  } catch (e) {
+    return '';
+  }
 }
 
 export function setOpenRouterApiKey(key) {
   if (typeof window === 'undefined') return;
-  if (key) {
-    localStorage.setItem('openrouter_api_key', key.trim());
-  } else {
-    localStorage.removeItem('openrouter_api_key');
+  try {
+    if (key) {
+      localStorage.setItem('openrouter_api_key', key.trim());
+    } else {
+      localStorage.removeItem('openrouter_api_key');
+    }
+  } catch (e) {
+    console.warn('Failed to access localStorage:', e);
   }
 }
 
 export function getSelectedOpenRouterModel() {
   if (typeof window === 'undefined') return 'anthropic/claude-3.5-sonnet';
-  return localStorage.getItem('openrouter_selected_model') || 'anthropic/claude-3.5-sonnet';
+  try {
+    return localStorage.getItem('openrouter_selected_model') || 'anthropic/claude-3.5-sonnet';
+  } catch (e) {
+    return 'anthropic/claude-3.5-sonnet';
+  }
 }
 
 export function setSelectedOpenRouterModel(modelId) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('openrouter_selected_model', modelId);
+  try {
+    localStorage.setItem('openrouter_selected_model', modelId);
+  } catch (e) {
+    console.warn('Failed to access localStorage:', e);
+  }
 }
 
 /**
@@ -167,7 +183,11 @@ Required JSON structure:
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content;
         if (content) {
-          const parsed = JSON.parse(content);
+          let jsonText = content.trim();
+          if (jsonText.startsWith('```')) {
+            jsonText = jsonText.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '').trim();
+          }
+          const parsed = JSON.parse(jsonText);
           return formatGeneratedCharacter(parsed, prompt, role, archetype);
         }
       }

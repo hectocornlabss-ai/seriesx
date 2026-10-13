@@ -79,7 +79,7 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
             }}
             title="คลิกเพื่อสลับเรื่อง"
           >
-            <img src={activeSeries.coverUrl} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={activeSeries?.coverUrl || '/assets/cover_gilded_shadow.jpg'} alt="Cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
 
           <div>
@@ -128,7 +128,7 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
             </div>
 
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span>เรื่องที่เปิด: <strong style={{ color: 'var(--text-main)' }}>{activeSeries.title}</strong> — {activeSeries.episodeTitle}</span>
+              <span>เรื่องที่เปิด: <strong style={{ color: 'var(--text-main)' }}>{activeSeries?.title || 'ไม่มีชื่อเรื่อง'}</strong> — {activeSeries?.episodeTitle || ''}</span>
               {currentPath === '/novel' && (
                 <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
                   หน้าแก้ไขบทนิยาย (Google Docs)

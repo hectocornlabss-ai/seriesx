@@ -25,13 +25,15 @@ export function usePathRouter() {
     let url = toPath;
     const paramEntries = Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '');
     if (paramEntries.length > 0) {
-      const search = new URLSearchParams(params).toString();
+      const search = new URLSearchParams(paramEntries).toString();
       url += '?' + search;
     }
     window.history.pushState({}, '', url);
     setPath(toPath);
-    setSearchParams(new URLSearchParams(params));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setSearchParams(new URLSearchParams(paramEntries));
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return { path, searchParams, navigate };

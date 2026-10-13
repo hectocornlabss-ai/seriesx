@@ -23,12 +23,13 @@ export default function NovelStudioEditor({
   onOpenCharacterBible,
   onGoHome
 }) {
-  const defaultVolumes = series.volumes || [
+  const safeSeries = series || {};
+  const defaultVolumes = safeSeries.volumes && safeSeries.volumes.length > 0 ? safeSeries.volumes : [
     { id: "vol-01", title: "เล่มที่ 1: เพลิงแค้นกลางสายฝน" },
     { id: "vol-02", title: "เล่มที่ 2: ในเงามืดของศัตรู" }
   ];
 
-  const defaultChapters = series.chapters || [
+  const defaultChapters = safeSeries.chapters && safeSeries.chapters.length > 0 ? safeSeries.chapters : [
     {
       id: "ch-001",
       number: 1,
@@ -129,8 +130,20 @@ export default function NovelStudioEditor({
   // Primary States
   const [volumes, setVolumes] = useState(defaultVolumes);
   const [chapters, setChapters] = useState(defaultChapters);
-  const [selectedVolumeId, setSelectedVolumeId] = useState(defaultVolumes[0].id);
-  const [activeChapterId, setActiveChapterId] = useState(defaultChapters[0].id);
+  const [selectedVolumeId, setSelectedVolumeId] = useState(defaultVolumes[0]?.id || 'vol-01');
+  const [activeChapterId, setActiveChapterId] = useState(defaultChapters[0]?.id || 'ch-001');
+
+  // Sync state if series changes (e.g. user selects another project)
+  useEffect(() => {
+    if (series) {
+      const newVols = series.volumes && series.volumes.length > 0 ? series.volumes : defaultVolumes;
+      const newChaps = series.chapters && series.chapters.length > 0 ? series.chapters : defaultChapters;
+      setVolumes(newVols);
+      setChapters(newChaps);
+      setSelectedVolumeId(newVols[0]?.id || 'vol-01');
+      setActiveChapterId(newChaps[0]?.id || 'ch-001');
+    }
+  }, [series?.id]);
 
   // Active References
   const currentChapter = chapters.find(c => c.id === activeChapterId) || chapters[0] || {};
@@ -139,7 +152,7 @@ export default function NovelStudioEditor({
   const filteredChapters = chapters.filter(c => !c.volumeId || c.volumeId === selectedVolumeId);
 
   // Series Characters (Scoped strictly to this series)
-  const currentCharacters = series.characters || [];
+  const currentCharacters = safeSeries.characters || [];
 
   // Editor Ref & Auto-Save
   const editorRef = useRef(null);
@@ -204,7 +217,7 @@ export default function NovelStudioEditor({
   const [hasActiveSelection, setHasActiveSelection] = useState(false);
   const [aiRewritePrompt, setAiRewritePrompt] = useState('ช่วยแก้ไขเนื้อหานี้ให้ดีหน่อย');
   const [taggedCharacterIds, setTaggedCharacterIds] = useState(
-    (series.characters || []).slice(0, 2).map(c => c.id)
+    (safeSeries.characters || []).slice(0, 2).map(c => c.id)
   );
   const [showCharacterPicker, setShowCharacterPicker] = useState(false);
   const [showNewCharacterModal, setShowNewCharacterModal] = useState(false);
@@ -224,8 +237,8 @@ export default function NovelStudioEditor({
       onAddCharacter(newChar);
     } else if (onUpdateSeries) {
       onUpdateSeries({
-        ...series,
-        characters: [...(series.characters || []), newChar]
+        ...safeSeries,
+        characters: [...(safeSeries.characters || []), newChar]
       });
     }
     setTaggedCharacterIds(prev => [...prev, newChar.id]);
@@ -237,7 +250,7 @@ export default function NovelStudioEditor({
   const syncSeriesData = (updatedChapters, updatedVolumes = volumes) => {
     if (onUpdateSeries) {
       onUpdateSeries({
-        ...series,
+        ...safeSeries,
         volumes: updatedVolumes,
         chapters: updatedChapters
       });
@@ -583,7 +596,7 @@ export default function NovelStudioEditor({
         sampleLine: `นี่ไม่ใช่เรื่องบังเอิญ... ทุกอย่างถูกจัดฉากไว้แล้ว!`
       },
       wardrobeSpec: "เครื่องแต่งกายสั่งตัดเฉพาะตัวละคร",
-      description: newCharTraits.trim() || `ตัวละครใหม่ในเรื่อง ${series.title}`,
+      description: newCharTraits.trim() || `ตัวละครใหม่ในเรื่อง ${safeSeries.title || ''}`,
       expressionMatrix: [
         { label: "Neutral (สุขุม)", status: "Locked 100%" },
         { label: "Tense (ตึงเครียด)", status: "Locked 98%" },
@@ -600,10 +613,10 @@ export default function NovelStudioEditor({
       }
     };
 
-    const updatedCharacters = [...(series.characters || []), newChar];
+    const updatedCharacters = [...(safeSeries.characters || []), newChar];
     if (onUpdateSeries) {
       onUpdateSeries({
-        ...series,
+        ...safeSeries,
         characters: updatedCharacters
       });
     }
@@ -614,7 +627,7 @@ export default function NovelStudioEditor({
     setNewCharTraits('');
     setNewCharVoice('');
     setShowNewCharacterModal(false);
-    setCharSuccessNotice(`สร้างตัวละคร "${cleanName}" ในเรื่อง "${series.title}" เรียบร้อย พร้อมซิงค์ไปหน้า Character Bible`);
+    setCharSuccessNotice(`สร้างตัวละคร "${cleanName}" ในเรื่อง "${safeSeries.title || ''}" เรียบร้อย พร้อมซิงค์ไปหน้า Character Bible`);
     setTimeout(() => setCharSuccessNotice(''), 6000);
   };
 
@@ -637,7 +650,7 @@ export default function NovelStudioEditor({
     setIsAiRewriting(true);
     setRewrittenResult('');
 
-    const activeChars = (series.characters || []).filter(c => taggedCharacterIds.includes(c.id));
+    const activeChars = (safeSeries.characters || []).filter(c => taggedCharacterIds.includes(c.id));
     const charNames = activeChars.map(c => c.name.split('/')[0].trim()).join(' และ ');
 
     setTimeout(() => {
@@ -878,7 +891,7 @@ export default function NovelStudioEditor({
                 )}
               </div>
               <h2 style={{ fontSize: '1.2rem', color: 'var(--text-main)', margin: '2px 0 0 0', fontWeight: 800 }}>
-                {series.title}
+                {safeSeries.title || 'นิยาย'}
               </h2>
 
               {/* Google Docs Menu Bar */}
@@ -2890,7 +2903,7 @@ export default function NovelStudioEditor({
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '6px' }}>
                           <strong style={{ fontSize: '0.74rem', color: 'var(--text-main)' }}>
-                            เลือกตัวละครในเรื่อง "{series.title}":
+                            เลือกตัวละครในเรื่อง "{safeSeries.title || 'นิยาย'}":
                           </strong>
                           <button
                             type="button"
@@ -3525,7 +3538,7 @@ export default function NovelStudioEditor({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <UserPlus size={18} strokeWidth={2} color="var(--teal-primary)" />
                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-main)' }}>
-                  สร้างตัวละครใหม่ในเรื่อง: {series.title}
+                  สร้างตัวละครใหม่ในเรื่อง: {safeSeries.title || 'นิยาย'}
                 </h3>
               </div>
               <button

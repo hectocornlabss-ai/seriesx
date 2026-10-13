@@ -17,9 +17,9 @@ export default function App() {
 
   // Read initial series from URL query ?id=... or fallback to first series
   const querySeriesId = searchParams.get('id');
-  const initialId = querySeriesId && initialSeriesList.some(s => s.id === querySeriesId)
+  const initialId = querySeriesId && (seriesList.some(s => s.id === querySeriesId) || initialSeriesList.some(s => s.id === querySeriesId))
     ? querySeriesId
-    : initialSeriesList[0].id;
+    : (seriesList[0]?.id || initialSeriesList[0]?.id || 'series-001');
 
   const [activeSeriesId, setActiveSeriesId] = useState(initialId);
   const [isApproved, setIsApproved] = useState(false);
@@ -32,7 +32,7 @@ export default function App() {
     }
   }, [searchParams, seriesList, activeSeriesId]);
 
-  const activeSeries = seriesList.find(s => s.id === activeSeriesId) || seriesList[0];
+  const activeSeries = seriesList.find(s => s.id === activeSeriesId) || seriesList[0] || initialSeriesList[0] || {};
 
   // Map path to active tab and subTab
   let activeTab = 'writers';
@@ -161,21 +161,22 @@ export default function App() {
         onSelectSeries={handleSelectSeries}
         activeTab={activeTab}
         setActiveTab={(tabId) => {
+          const sid = activeSeries?.id || 'series-001';
           if (tabId === 'writers') navigate('/');
-          else if (tabId === 'character') navigate('/characters', { id: activeSeries.id });
-          else if (tabId === 'art') navigate('/art', { id: activeSeries.id });
-          else if (tabId === 'pipeline') navigate('/pipeline', { id: activeSeries.id });
-          else if (tabId === 'qa') navigate('/qa', { id: activeSeries.id });
-          else if (tabId === 'pitch') navigate('/pitch', { id: activeSeries.id });
+          else if (tabId === 'character') navigate('/characters', { id: sid });
+          else if (tabId === 'art') navigate('/art', { id: sid });
+          else if (tabId === 'pipeline') navigate('/pipeline', { id: sid });
+          else if (tabId === 'qa') navigate('/qa', { id: sid });
+          else if (tabId === 'pitch') navigate('/pitch', { id: sid });
         }}
-        onExportPitchDeck={() => navigate('/pitch', { id: activeSeries.id })}
+        onExportPitchDeck={() => navigate('/pitch', { id: activeSeries?.id || 'series-001' })}
         qaStatus={isApproved ? 'APPROVED' : 'REVIEW'}
         onGoHome={handleGoHome}
         currentPath={path}
       />
 
       {/* Main Studio Viewport */}
-      <main className="studio-container animate-fade-in" key={`${path}-${activeSeries.id}`}>
+      <main className="studio-container animate-fade-in" key={`${path}-${activeSeries?.id || 'default'}`}>
         {activeTab === 'writers' && (
           <WritersRoomTab
             seriesList={seriesList}
