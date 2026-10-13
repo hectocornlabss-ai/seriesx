@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Zap, Flame, ShieldAlert, Video, MessageSquare, Volume2, Plus, Check } from 'lucide-react';
+import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity } from 'lucide-react';
 
 export default function WritersRoomTab({ project, shots, onUpdateShots }) {
   const [activeShotIndex, setActiveShotIndex] = useState(0);
@@ -19,7 +19,7 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
       } else if (type === 'cliffhanger') {
         setOptimizationSuccess('✅ Cliffhanger Index เพิ่มขึ้นเป็น 98/100 ด้วยการใส่จุดตัดเสียงฉับพลันและเสียงไซเรนฉุกเฉิน!');
       } else {
-        setOptimizationSuccess('✅ ปรับเพิ่มความเข้มข้นของบทพูด (Subtext & Tension) เรียบร้อย!');
+        setOptimizationSuccess('✅ ปรับเพิ่มความลึกซึ้งของการแสดง (Micro-expressions & FACS) และคิวมุมกล้องเรียบร้อย!');
       }
     }, 1000);
   };
@@ -61,7 +61,7 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
             <div style={{ width: '96%', height: '100%', background: 'linear-gradient(90deg, #f43f5e, #fb7185)' }} />
           </div>
           <p style={{ fontSize: '0.8rem', color: '#cbd5e1', marginTop: '10px' }}>
-            ⚡ <strong>การวิเคราะห์ AI:</strong> ภาพเปิดห้องประชุมฝนตก + แฟ้มไฟลุก + แววตาแค้นของนางเอก ดึงดูดสายตาทันทีโดยไม่ต้องมีบทเกริ่นนำ
+            ⚡ <strong>การวิเคราะห์ AI:</strong> ช็อต Extreme Close-up 85mm + แววตาคลอเบ้าน้ำตา และริมฝีปากสั่นระริกสะกดอารมณ์ทันที
           </p>
         </div>
 
@@ -94,21 +94,21 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
             <div style={{ width: '94%', height: '100%', background: 'linear-gradient(90deg, #8b5cf6, #c084fc)' }} />
           </div>
           <p style={{ fontSize: '0.8rem', color: '#cbd5e1', marginTop: '10px' }}>
-            🔒 <strong>การวิเคราะห์ AI:</strong> สัญญาณเตือนภัยดัง + คำถามทิ้งท้าย "ใครบอกให้เธอมาที่นี่" ทำให้เกิดความอยากรู้ระดับสูงสุด
+            🔒 <strong>การวิเคราะห์ AI:</strong> สัญญาณเตือนภัย + เสียงกระซิบตกใจชิดใบหน้าระยะ 5 ซม. สั่งตัดดับไฟเข้าเครดิต
           </p>
         </div>
 
-        {/* Vertical Format Constraints */}
-        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #06b6d4' }}>
+        {/* Realism & Acting Metric */}
+        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid #10b981' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Video size={24} color="#06b6d4" />
+              <Activity size={24} color="#10b981" />
               <div>
-                <h2 style={{ fontSize: '1rem', margin: 0, color: '#ffffff' }}>Vertical Pacing Rule</h2>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>จังหวะกระชับตามหลัก 9:16 Short Drama</p>
+                <h2 style={{ fontSize: '1rem', margin: 0, color: '#ffffff' }}>Acting & Camera Authenticity</h2>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ความสมจริงของสีหน้าและมุมกล้อง</p>
               </div>
             </div>
-            <span className="badge badge-blue">1m 10s Total</span>
+            <span className="badge badge-green">98.9% FACS</span>
           </div>
           <ul style={{
             fontSize: '0.8rem',
@@ -117,8 +117,8 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
             paddingLeft: '18px',
             lineHeight: 1.6
           }}>
-            <li>ความยาว 4 ช็อตหลัก (Hook 4s, Clash 11s, Sponsor 20s, Climax 35s)</li>
-            <li>หลีกเลี่ยง Long Establishing Shot - เน้น Close-up และ Macro</li>
+            <li>กำกับกล้ามเนื้อใบหน้า (Micro-expressions: คิ้ว ปาก กราม น้ำตา)</li>
+            <li>คุมเลนส์กล้อง (85mm Prime, Low Angle Dutch, Rack Focus)</li>
           </ul>
         </div>
       </div>
@@ -131,7 +131,7 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
               📖 นิยาย & โครงเรื่องหลัก (Novel Synopsis & Master Lore)
             </h3>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              ระบบ AI Screenwriter Agent จะอ่านโครงเรื่องนี้แล้วแตกออกเป็นบทพูด, อารมณ์ และมุมกล้อง 9:16 อัตโนมัติ
+              ระบบ AI Screenwriter Agent จะอ่านโครงเรื่องนี้แล้วแตกออกเป็นบทพูด, อารมณ์, ท่าทาง และมุมกล้อง 9:16 อัตโนมัติ
             </p>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -155,23 +155,23 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
               Boost 3s Hook
             </button>
             <button
-              onClick={() => handleRunAiOptimize('cliffhanger')}
+              onClick={() => handleRunAiOptimize('acting')}
               disabled={isAiOptimizing}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
                 padding: '8px 14px',
-                background: 'rgba(139, 92, 246, 0.15)',
-                border: '1px solid rgba(139, 92, 246, 0.4)',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.4)',
                 borderRadius: '8px',
-                color: '#c084fc',
+                color: '#34d399',
                 fontSize: '0.8rem',
                 fontWeight: 600
               }}
             >
-              <Zap size={15} />
-              Tune Cliffhanger
+              <Activity size={15} />
+              Enhance Acting & Camera
             </button>
           </div>
         </div>
@@ -242,21 +242,29 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
                       fontSize: '0.85rem',
                       color: isSelected ? '#fb7185' : '#ffffff'
                     }}>
-                      Shot {shot.number}: {shot.name}
+                      Shot {shot.number}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                       {shot.duration}
                     </span>
                   </div>
                   <div style={{
-                    fontSize: '0.75rem',
+                    fontSize: '0.78rem',
+                    color: '#e2e8f0',
+                    marginTop: '4px',
+                    fontWeight: 600
+                  }}>
+                    {shot.name.split(':')[0]}
+                  </div>
+                  <div style={{
+                    fontSize: '0.72rem',
                     color: 'var(--text-muted)',
-                    marginTop: '6px',
+                    marginTop: '2px',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis'
                   }}>
-                    {shot.character} • {shot.cameraAngle}
+                    {shot.cameraDirector ? shot.cameraDirector.lens : shot.cameraAngle}
                   </div>
                 </div>
               );
@@ -278,45 +286,78 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
                 ⏱️ Timecode: {selectedShot.timecode} ({selectedShot.duration}) | 📍 {selectedShot.location}
               </p>
             </div>
-            <span className="badge badge-green">AI Consistency Ready</span>
+            <span className="badge badge-green">FACS Acting Ready</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
-            {/* Action / Scene Beat */}
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              padding: '14px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)'
-            }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                การกระทำ & ท่าทาง (Action & Stage Directions)
-              </label>
-              <p style={{ fontSize: '0.88rem', color: '#e2e8f0', marginTop: '6px', lineHeight: 1.5 }}>
-                {selectedShot.action}
-              </p>
+          {/* Deep Cinematography & Camera Box */}
+          <div style={{
+            background: 'rgba(6, 182, 212, 0.08)',
+            border: '1px solid rgba(6, 182, 212, 0.3)',
+            borderRadius: '10px',
+            padding: '16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', marginBottom: '10px' }}>
+              <Camera size={18} />
+              <strong style={{ fontSize: '0.9rem' }}>🎥 การกำกับมุมกล้อง 9:16 (Cinematography Directing)</strong>
             </div>
 
-            {/* Camera & Framing (9:16 specific) */}
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.3)',
-              padding: '14px',
-              borderRadius: '8px',
-              border: '1px solid var(--border-subtle)'
-            }}>
-              <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-                มุมกล้อง & การเคลื่อนไหว 9:16 (Camera Motion)
-              </label>
-              <p style={{ fontSize: '0.88rem', color: '#38bdf8', marginTop: '6px', fontWeight: 600 }}>
-                {selectedShot.cameraAngle}
-              </p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '4px' }}>
-                แสง: {selectedShot.lighting}
-              </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>เลนส์และทางยาวโฟกัส:</span>
+                <strong style={{ color: '#fff' }}>{selectedShot.cameraDirector?.lens || '85mm Cine Prime'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>การเคลื่อนกล้องแนวตั้ง:</span>
+                <strong style={{ color: '#38bdf8' }}>{selectedShot.cameraDirector?.movement || selectedShot.cameraAngle}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>ระยะชัดลึก (Depth of Field):</span>
+                <strong style={{ color: '#fff' }}>{selectedShot.cameraDirector?.depthOfField || 'Shallow f/1.4'}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>องศาเอียง (Tilt / Dutch Angle):</span>
+                <strong style={{ color: '#fb7185' }}>{selectedShot.cameraDirector?.tiltAngle || 'Dutch Angle'}</strong>
+              </div>
             </div>
           </div>
 
-          {/* Dialogue & Emotion Subtext */}
+          {/* Deep Actor Directing & Micro-Expressions Box */}
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.08)',
+            border: '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: '10px',
+            padding: '16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', marginBottom: '10px' }}>
+              <UserCheck size={18} />
+              <strong style={{ fontSize: '0.9rem' }}>🎭 การกำกับการแสดง & สีหน้า (Method Acting & Micro-Expressions)</strong>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>สีหน้าละเอียดและดวงตา (Facial & Eye Cues):</span>
+                <p style={{ margin: '4px 0 0 0', color: '#f1f5f9', lineHeight: 1.5 }}>
+                  {selectedShot.actorDirecting?.facialMicroExpressions || selectedShot.action}
+                </p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>ภาษากายและท่าทาง:</span>{' '}
+                  <span style={{ color: '#cbd5e1' }}>{selectedShot.actorDirecting?.bodyLanguage || 'เกร็งกล้ามเนื้อ สู้สายตา'}</span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>FACS Muscle Code:</span>{' '}
+                  <span className="badge badge-green" style={{ fontSize: '0.7rem' }}>
+                    {selectedShot.actorDirecting?.facsCode || 'AU1+AU4+AU20'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Dialogue & Emotion Subtext with Micro-Breath cues */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(244, 63, 94, 0.08), rgba(139, 92, 246, 0.08))',
             border: '1px solid rgba(244, 63, 94, 0.3)',
@@ -328,11 +369,11 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MessageSquare size={16} color="#fb7185" />
                 <strong style={{ fontSize: '0.85rem', color: '#fecdd3' }}>
-                  บทพูดของ: {selectedShot.character}
+                  บทพูดและการออกเสียงอารมณ์: {selectedShot.character}
                 </strong>
               </div>
               <span className="badge badge-amber" style={{ fontSize: '0.72rem' }}>
-                Emotion Tag: {selectedShot.emotionTag}
+                {selectedShot.vocalProsody?.emotionTag || selectedShot.emotionTag}
               </span>
             </div>
 
@@ -340,28 +381,30 @@ export default function WritersRoomTab({ project, shots, onUpdateShots }) {
               fontSize: '1.05rem',
               color: '#ffffff',
               fontWeight: 500,
-              fontStyle: 'italic',
               lineHeight: 1.5,
-              padding: '8px 12px',
-              background: 'rgba(0, 0, 0, 0.4)',
+              padding: '10px 14px',
+              background: 'rgba(0, 0, 0, 0.45)',
               borderRadius: '6px',
               borderLeft: '3px solid #f43f5e'
             }}>
-              "{selectedShot.dialogue}"
+              "{selectedShot.vocalProsody?.withCues || selectedShot.dialogue}"
             </p>
 
             <div style={{
+              marginTop: '10px',
+              fontSize: '0.78rem',
+              color: '#cbd5e1',
               display: 'flex',
-              gap: '16px',
-              marginTop: '12px',
-              fontSize: '0.8rem',
-              color: 'var(--text-muted)'
+              flexDirection: 'column',
+              gap: '4px'
             }}>
               <div>
-                <strong>🔊 SFX Effect:</strong> {selectedShot.sfx}
+                <strong style={{ color: '#fb7185' }}>🎙️ Vocal Curve & Micro-Breathing:</strong>{' '}
+                {selectedShot.vocalProsody?.vocalCurve || 'เสียงสั่นเครือปลายเสียงสะอื้น'}
               </div>
-              <div>
-                <strong>🎵 BGM Mood:</strong> {selectedShot.bgm}
+              <div style={{ display: 'flex', gap: '16px', marginTop: '4px', color: 'var(--text-muted)' }}>
+                <span><strong>SFX:</strong> {selectedShot.sfx}</span>
+                <span><strong>BGM:</strong> {selectedShot.bgm}</span>
               </div>
             </div>
           </div>
