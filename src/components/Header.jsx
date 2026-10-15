@@ -11,7 +11,7 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
     { id: 'character', label: '2. Casting & Character Bible', sub: 'Face-Lock 98.7%', icon: UserCheck },
     { id: 'art', label: '3. Art & Sponsor Vault (VPP)', sub: 'LUMIÈRE', icon: Package },
     { id: 'pipeline', label: '4. Video & Audio Engine', sub: '9:16 UHD', icon: Camera },
-    { id: 'qa', label: '5. Dual QA Gate', sub: qaStatus === 'APPROVED' ? 'Approved' : 'Review', icon: ShieldCheck },
+    { id: 'qa', label: '5. Dual QA & Team Roles', sub: qaStatus === 'APPROVED' ? 'Approved' : '7 ฝ่าย & SLA', icon: ShieldCheck },
     { id: 'pitch', label: '6. Commercial Pitch & Export', sub: 'Deck Ready', icon: FileText }
   ];
 

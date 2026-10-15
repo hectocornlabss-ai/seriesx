@@ -116,8 +116,8 @@ export default function UserGuideModal({ isOpen, onClose, onNavigateTab }) {
           desc: "ตรวจสอบความนิ่งของใบหน้า (Face Consistency), ลิปซิงก์ตรงกับคำพูด (Lip Sync), และดัชนีจุดตัดระทึกท้ายตอน (Cliffhanger Index)"
         },
         {
-          heading: "ชั้นที่ 2: Human Director Review Gate:",
-          desc: "ผู้กำกับมนุษย์สามารถเขียนบันทึกข้อเสนอแนะ และกดปุ่ม 'อนุมัติเพื่อเผยแพร่ (Director Sign-off)' เพื่อปลดล็อกการส่งออกไฟล์ Master"
+          heading: "ชั้นที่ 2: Human Director Review Gate & 1-Click Prompt Export:",
+          desc: "เมื่อผู้กำกับมนุษย์ตรวจทานบทและกดยืนยันอนุมัติ (Director Sign-off) ระบบจะปลดล็อกปุ่ม 'ส่งออก Prompt ถ่ายทำอัตโนมัติ (1-Click Ready Prompts)' สังเคราะห์ครบ 8 มิติ (มุมกล้อง 9:16, ตัวละคร, เสื้อผ้า, เสียงพากย์, ท่าทาง, การเคลื่อนไหวธรรมชาติ, ฉาก, และความต่อเนื่อง) พร้อมกดสร้างใน Kling, Runway, Hailuo, Luma หรือ Wan 2.1 ได้ทันที"
         }
       ],
       route: '/qa',

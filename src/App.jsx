@@ -223,6 +223,7 @@ export default function App() {
           <GenerationPipelineTab
             shots={activeSeries.shots}
             characters={activeSeries.characters}
+            series={activeSeries}
           />
         )}
 
@@ -231,6 +232,7 @@ export default function App() {
             qaReport={activeSeries.qaReport}
             onDirectorApprove={handleDirectorApprove}
             isApproved={isApproved}
+            series={activeSeries}
           />
         )}
 

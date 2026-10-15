@@ -387,29 +387,84 @@ export default function CharacterBibleTab({ characters = [], series = null, onAd
 
           {/* Wardrobe Continuity Lock */}
           <div className="clay-card" style={{ padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--teal-primary)' }}>
-              <ShieldCheck size={18} strokeWidth={2} />
-              <h4 style={{ fontSize: '0.92rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
-                Wardrobe & Styling Continuity Lock (คุมชุดเสื้อผ้าและเครื่องประดับ)
-              </h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--teal-primary)' }}>
+                <ShieldCheck size={18} strokeWidth={2} />
+                <h4 style={{ fontSize: '0.94rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
+                  Wardrobe & Styling Continuity Lock (คุมชุดเสื้อผ้าและเครื่องประดับในฉาก)
+                </h4>
+              </div>
+              <span className="badge badge-teal" style={{ fontSize: '0.72rem' }}>
+                Seed: {character.actorSeed || '77391024'} &bull; LoRA: {character.loraWeight || 0.88}
+              </span>
             </div>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
-              <strong>สเปกชุด Episode 01:</strong> {character.wardrobeSpec}
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 10px 0' }}>
+              <strong>สเปกชุด Episode 01:</strong> {character.wardrobeSpec || 'สูทสีกรมท่า Navy Wool 120s, เชิ้ตขาวผ้าไหม, ต่างหูมุก'}
             </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '8px', marginBottom: '12px' }}>
+              <div style={{ background: 'var(--bg-inset)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.74rem' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>เนื้อผ้า & คัตติ้ง:</span>
+                <strong style={{ color: 'var(--text-main)' }}>Wool 120s / Matte Silk Lapel</strong>
+              </div>
+              <div style={{ background: 'var(--bg-inset)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.74rem' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>จำนวนกระดุม & ทรงปก:</span>
+                <strong style={{ color: 'var(--text-main)' }}>Double-Breasted 4-Button / Peak</strong>
+              </div>
+              <div style={{ background: 'var(--bg-inset)', padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.74rem' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block' }}>เครื่องประดับ & อุปกรณ์:</span>
+                <strong style={{ color: 'var(--text-main)' }}>Silver Pearl Earrings / Slim Watch</strong>
+              </div>
+            </div>
+
             <div style={{
-              marginTop: '12px',
               padding: '10px 14px',
               background: 'var(--accent-green-bg)',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid rgba(31, 122, 89, 0.3)',
-              fontSize: '0.78rem',
+              fontSize: '0.76rem',
               color: 'var(--accent-green)',
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
             }}>
               <CheckCircle2 size={16} strokeWidth={2} />
-              <span>ระบบ Prompt Negative Guard ป้องกันโมเดลแอบเปลี่ยนสีเสื้อหรือเพิ่มกระดุมผิดตำแหน่ง</span>
+              <span>Prompt Negative Guard & IP-Adapter ล็อกสีเสื้อ รอยยับ และกระดุม ไม่ให้เปลี่ยนข้ามคัทเด็ดขาด</span>
+            </div>
+          </div>
+
+          {/* Biological Human Motion & Kinetic Engine Card */}
+          <div className="clay-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-green)' }}>
+                <HeartPulse size={18} strokeWidth={2} />
+                <h4 style={{ fontSize: '0.94rem', color: 'var(--text-main)', margin: 0, fontWeight: 700 }}>
+                  Biological Human Motion Engine (ฟิสิกส์การเคลื่อนไหวสมจริงเหมือนมนุษย์)
+                </h4>
+              </div>
+              <span className="badge badge-teal-subtle" style={{ fontSize: '0.72rem' }}>
+                Anti-Stiffness Active
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', fontSize: '0.78rem' }}>
+              <div style={{ background: 'var(--bg-surface)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <strong style={{ color: 'var(--teal-primary)', display: 'block', marginBottom: '2px' }}>การกระเพื่อมของทรวงอก:</strong>
+                <span style={{ color: 'var(--text-muted)' }}>ไหปลาร้าและอกกระเพื่อม 14 ครั้ง/นาที ตามจังหวะลมหายใจธรรมชาติ</span>
+              </div>
+              <div style={{ background: 'var(--bg-surface)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <strong style={{ color: 'var(--accent-green)', display: 'block', marginBottom: '2px' }}>การกะพริบตา & Saccades:</strong>
+                <span style={{ color: 'var(--text-muted)' }}>สายตาเหลือบมองและกะพริบทุก 2.5-4 วินาที ไม่จ้องค้างเป็นหุ่นยนต์</span>
+              </div>
+              <div style={{ background: 'var(--bg-surface)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <strong style={{ color: 'var(--accent-amber)', display: 'block', marginBottom: '2px' }}>การกลืนน้ำลาย & เกร็งคอ:</strong>
+                <span style={{ color: 'var(--text-muted)' }}>ลูกกระเดือกขยับกลืนน้ำลายสะดุดเมื่อเผชิญแรงกดดันในซีนดราม่า</span>
+              </div>
+              <div style={{ background: 'var(--bg-surface)', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <strong style={{ color: 'var(--teal-primary)', display: 'block', marginBottom: '2px' }}>กล้ามเนื้อใบหน้า FACS:</strong>
+                <span style={{ color: 'var(--text-muted)' }}>AU1+AU4+AU20 ซิงค์กับเสียงสะอื้นและริมฝีปากสั่นระริก</span>
+              </div>
             </div>
           </div>
         </div>

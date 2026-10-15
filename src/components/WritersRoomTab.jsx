@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, ArrowRight, ArrowLeft, Image as ImageIcon, Feather, Layers, List, Play, Sliders, AlertTriangle, Clock, RotateCcw, X } from 'lucide-react';
+import { Sparkles, Zap, Flame, Video, MessageSquare, Volume2, Eye, Camera, UserCheck, Activity, BookOpen, Music, ShieldCheck, Film, Award, Plus, Edit3, Trash2, Check, CheckCircle2, ArrowRight, ArrowLeft, Image as ImageIcon, Feather, Layers, List, Play, Sliders, AlertTriangle, Clock, RotateCcw, X, Copy } from 'lucide-react';
 import NovelStudioEditor from './NovelStudioEditor';
 import SeriesStructurePage from './SeriesStructurePage';
+import ProductionPromptModal from './ProductionPromptModal';
+import { HOLLYWOOD_EMOTIONAL_ARCHETYPES } from '../utils/cinematographyEngine';
 
 export default function WritersRoomTab({
   seriesList,
@@ -47,9 +49,53 @@ export default function WritersRoomTab({
   const [activeShotIndex, setActiveShotIndex] = useState(0);
   const [isAiOptimizing, setIsAiOptimizing] = useState(false);
   const [optimizationSuccess, setOptimizationSuccess] = useState('');
+  const [showScreenplayPromptModal, setShowScreenplayPromptModal] = useState(false);
 
   const shots = activeSeries.shots || [];
   const selectedShot = shots[activeShotIndex] || shots[0] || {};
+
+  const activeShotCharacter = (activeSeries.characters || []).find(c => {
+    const cName = (c.name || '').split('/')[0].trim();
+    const sChar = (selectedShot.character || selectedShot.actorDirecting?.character || '').trim();
+    return cName.includes(sChar) || sChar.includes(cName);
+  }) || activeSeries.characters?.[0] || {};
+
+  const handleSelectHollywoodArchetype = (shotIdx, archKey) => {
+    const arch = HOLLYWOOD_EMOTIONAL_ARCHETYPES[archKey];
+    if (!arch) return;
+    const updatedShots = [...shots];
+    const targetShot = updatedShots[shotIdx];
+    if (!targetShot) return;
+
+    const charLabel = targetShot.character || targetShot.actorDirecting?.character || 'ตัวละคร';
+    updatedShots[shotIdx] = {
+      ...targetShot,
+      character: charLabel,
+      name: `ช็อตที่ ${targetShot.number}: ${charLabel} (${arch.name.split('(')[0].trim()})`,
+      hollywoodGrammarReason: arch.psychologicalIntent,
+      cameraDirector: {
+        ...(targetShot.cameraDirector || {}),
+        lens: arch.lens,
+        movement: arch.movement,
+        framing: arch.framing,
+        depthOfField: arch.depthOfField,
+        tiltAngle: arch.tiltAngle,
+        hollywoodRef: arch.hollywoodRef,
+        psychologicalIntent: arch.psychologicalIntent,
+        lightingRatio: arch.lightingRatio
+      },
+      actorDirecting: {
+        ...(targetShot.actorDirecting || {}),
+        facsCode: arch.facsCode,
+        biologicalMotion: arch.biologicalMotion
+      }
+    };
+
+    onUpdateSeries({
+      ...activeSeries,
+      shots: updatedShots
+    });
+  };
 
   const handleSaveStructure = (formData) => {
     onUpdateSeries({
@@ -881,6 +927,25 @@ export default function WritersRoomTab({
           </button>
 
           <button
+            onClick={() => setShowScreenplayPromptModal(true)}
+            className="btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              background: 'linear-gradient(135deg, #135E67, #0B4A51)',
+              boxShadow: 'var(--shadow-teal-btn)'
+            }}
+            title="เปิดชุด Prompt ถ่ายทำวิดีโอ 9:16 ที่สังเคราะห์ครบทั้ง 8 เสาหลัก"
+          >
+            <Sparkles size={16} strokeWidth={2.2} />
+            <span>ส่งออก Prompt ถ่ายทำ (1-Click Prompts)</span>
+          </button>
+
+          <button
             onClick={() => {
               if (onNavigate) onNavigate('/pipeline');
             }}
@@ -985,41 +1050,88 @@ export default function WritersRoomTab({
             <span className="badge badge-teal-subtle">FACS Acting Ready</span>
           </div>
 
-          {/* Deep Cinematography & Camera Box */}
+          {/* Hollywood Cinematography & Psychological Rationale Box */}
           <div style={{
-            background: 'var(--bg-inset)',
-            boxShadow: 'var(--shadow-inset)',
-            border: '1px solid var(--border-subtle)',
+            background: 'linear-gradient(135deg, rgba(11, 74, 81, 0.05), rgba(212, 175, 55, 0.08))',
+            border: '1px solid rgba(11, 74, 81, 0.2)',
             borderRadius: 'var(--radius-md)',
             padding: '16px',
             marginBottom: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--teal-primary)', marginBottom: '10px' }}>
-              <Camera size={18} strokeWidth={2} />
-              <strong style={{ fontSize: '0.9rem' }}>การกำกับมุมกล้อง 9:16 (Cinematography Directing)</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--teal-primary)' }}>
+                <Film size={18} strokeWidth={2.2} />
+                <strong style={{ fontSize: '0.92rem' }}>จิตวิทยามุมกล้องฮอลลีวูด (Hollywood Cinematography Grammar)</strong>
+              </div>
+              <span style={{ fontSize: '0.72rem', color: '#92400E', fontWeight: 700 }}>
+                🎬 {selectedShot.cameraDirector?.hollywoodRef || 'Hollywood Ref: The Godfather / Succession'}
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', fontSize: '0.82rem' }}>
-              <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block' }}>เลนส์และทางยาวโฟกัส:</span>
-                <strong style={{ color: 'var(--text-main)' }}>{selectedShot.cameraDirector?.lens || '85mm Cine Prime'}</strong>
+            <p style={{ margin: '0 0 12px 0', fontSize: '0.82rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+              <strong>เหตุผลทางจิตวิทยา (Why this shot?):</strong>{' '}
+              {selectedShot.hollywoodGrammarReason || selectedShot.cameraDirector?.psychologicalIntent || 'ดึงคนดูเข้าสู่อารมณ์ลึกซึ้งของตัวละครด้วยภาษาภาพยนตร์ระดับพรีเมียม'}
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '0.8rem' }}>
+              <div style={{ background: 'var(--bg-inset)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>เลนส์ & ทางยาวโฟกัส:</span>
+                <strong style={{ color: 'var(--text-main)' }}>{selectedShot.cameraDirector?.lens || '85mm Cine Prime f/1.4'}</strong>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block' }}>การเคลื่อนกล้องแนวตั้ง:</span>
-                <strong style={{ color: 'var(--teal-primary)' }}>{selectedShot.cameraDirector?.movement || selectedShot.cameraAngle}</strong>
+              <div style={{ background: 'var(--bg-inset)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>การเคลื่อนกล้องแนวตั้ง 9:16:</span>
+                <strong style={{ color: 'var(--teal-primary)' }}>{selectedShot.cameraDirector?.movement || selectedShot.cameraAngle || 'Vertical Slow Push-In'}</strong>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block' }}>ระยะชัดลึก (Depth of Field):</span>
-                <strong style={{ color: 'var(--text-main)' }}>{selectedShot.cameraDirector?.depthOfField || 'Shallow f/1.4'}</strong>
+              <div style={{ background: 'var(--bg-inset)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>องศาเอียง & สัดส่วนทองคำ φ:</span>
+                <strong style={{ color: 'var(--accent-amber)' }}>{selectedShot.cameraDirector?.tiltAngle || '0° Eye-line'} (φ Golden Eye Synced)</strong>
               </div>
-              <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block' }}>องศาเอียง (Tilt / Dutch Angle):</span>
-                <strong style={{ color: 'var(--accent-amber)' }}>{selectedShot.cameraDirector?.tiltAngle || 'Dutch Angle'}</strong>
+              <div style={{ background: 'var(--bg-inset)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.72rem' }}>แสงและอัตราส่วนความเปรียบต่าง:</span>
+                <strong style={{ color: 'var(--text-main)' }}>{selectedShot.cameraDirector?.lightingRatio || selectedShot.lighting || 'Rembrandt 4:1 Chiaroscuro'}</strong>
+              </div>
+            </div>
+
+            {/* Interactive Archetype Switcher inside Screenplay */}
+            <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px dashed rgba(11, 74, 81, 0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--teal-primary)', textTransform: 'uppercase' }}>
+                  เปลี่ยนมุมกล้องตามอารมณ์สำหรับช็อตนี้:
+                </span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-dim)' }}>คลิกเพื่ออัปเดตสเปกช็อตและ Prompt ทันที</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '6px' }}>
+                {Object.entries(HOLLYWOOD_EMOTIONAL_ARCHETYPES).map(([key, arch]) => {
+                  const isCurrent = selectedShot.name?.includes(arch.name.split('(')[0].trim()) || 
+                    selectedShot.cameraDirector?.lens === arch.lens;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleSelectHollywoodArchetype(activeShotIndex, key)}
+                      style={{
+                        padding: '6px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: isCurrent ? '1.5px solid var(--teal-primary)' : '1px solid var(--border-subtle)',
+                        background: isCurrent ? 'var(--teal-subtle)' : 'var(--bg-surface)',
+                        color: isCurrent ? 'var(--teal-primary)' : 'var(--text-main)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '0.72rem',
+                        fontWeight: isCurrent ? 700 : 500,
+                        transition: 'all 0.15s'
+                      }}
+                    >
+                      <div>{arch.name.split('(')[0].trim()}</div>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>{arch.lens.split('(')[0]}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Deep Actor Directing & Micro-Expressions Box */}
+          {/* Deep Actor Directing & Human Biological Kinetics Box */}
           <div style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-subtle)',
@@ -1028,19 +1140,42 @@ export default function WritersRoomTab({
             padding: '16px',
             marginBottom: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--teal-primary)', marginBottom: '10px' }}>
-              <UserCheck size={18} strokeWidth={2} />
-              <strong style={{ fontSize: '0.9rem' }}>การกำกับการแสดง & สีหน้า (Method Acting & Micro-Expressions)</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-green)' }}>
+                <Activity size={18} strokeWidth={2} />
+                <strong style={{ fontSize: '0.9rem' }}>ชีววิทยาการแสดงเสมือนมนุษย์ (Human Biological Kinetics & FACS)</strong>
+              </div>
+              <span className="badge badge-teal-subtle" style={{ fontSize: '0.7rem' }}>
+                Zero Robotic Stiffness
+              </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem' }}>
               <div>
-                <span style={{ color: 'var(--text-muted)' }}>สีหน้าละเอียดและดวงตา (Facial & Eye Cues):</span>
+                <span style={{ color: 'var(--text-muted)' }}>สีหน้าละเอียดและดวงตา (Facial & Eye Micro-Saccades):</span>
                 <p style={{ margin: '4px 0 0 0', color: 'var(--text-main)', lineHeight: 1.5 }}>
                   {selectedShot.actorDirecting?.facialMicroExpressions || selectedShot.action}
                 </p>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+
+              <div style={{
+                background: 'var(--bg-inset)',
+                padding: '10px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '4px'
+              }}>
+                <span style={{ color: 'var(--accent-green)', fontWeight: 700, fontSize: '0.75rem' }}>
+                  ฟิสิกส์การเคลื่อนไหวของมนุษย์ (Biological Kinetic Directives):
+                </span>
+                <span style={{ color: 'var(--text-main)', fontSize: '0.78rem', lineHeight: 1.4 }}>
+                  {selectedShot.actorDirecting?.biologicalMotion || 'การหายใจกระเพื่อมที่ทรวงอกและไหปลาร้า 14 ครั้ง/นาที, กะพริบตาถี่เป็นจังหวะตามธรรมชาติ, กลืนน้ำลายเมื่อเผชิญหน้ากดดัน'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '2px' }}>
                 <div>
                   <span style={{ color: 'var(--text-muted)' }}>ภาษากายและท่าทาง:</span>{' '}
                   <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>{selectedShot.actorDirecting?.bodyLanguage || 'เกร็งกล้ามเนื้อ สู้สายตา'}</span>
@@ -1052,6 +1187,35 @@ export default function WritersRoomTab({
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* In-Scene Wardrobe & Styling Continuity Lock Box */}
+          <div style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid rgba(31, 122, 89, 0.25)',
+            boxShadow: 'var(--shadow-raised-sm)',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 16px',
+            marginBottom: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--teal-primary)' }}>
+                <ShieldCheck size={18} strokeWidth={2} />
+                <strong style={{ fontSize: '0.88rem' }}>ความต่อเนื่องของเสื้อผ้าในฉาก (In-Scene Wardrobe Continuity Lock)</strong>
+              </div>
+              <span className="badge badge-teal" style={{ fontSize: '0.7rem' }}>
+                Seed Locked: {activeShotCharacter.actorSeed || '77391024'}
+              </span>
+            </div>
+
+            <p style={{ margin: '0 0 6px 0', fontSize: '0.8rem', color: 'var(--text-main)', lineHeight: 1.4 }}>
+              <strong>ชุดประจำฉาก ({selectedShot.character || activeShotCharacter.name?.split('/')[0]}):</strong>{' '}
+              {activeShotCharacter.wardrobeSpec || 'ชุดสูททวีตสีกรมท่า Navy Wool 120s, เชิ้ตขาวผ้าไหมอิตาลี, ต่างหูมุกสีเงิน'}
+            </p>
+            <div style={{ fontSize: '0.72rem', color: 'var(--accent-green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={13} />
+              <span>ล็อกคุณลักษณะเนื้อผ้า รอยยับ จำนวนกระดุม และเครื่องประดับ ห้ามโมเดล AI เปลี่ยนรูปแบบข้ามคัทเด็ดขาด</span>
             </div>
           </div>
 
@@ -1177,6 +1341,24 @@ export default function WritersRoomTab({
 
           <button
             type="button"
+            onClick={() => setShowScreenplayPromptModal(true)}
+            className="btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '8px 16px',
+              fontSize: '0.84rem',
+              background: 'linear-gradient(135deg, #135E67, #0B4A51)',
+              boxShadow: 'var(--shadow-teal-btn)'
+            }}
+          >
+            <Sparkles size={14} />
+            <span>ดู & ส่งออก Prompt ถ่ายทำ</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => {
               if (onNavigate) onNavigate('/pipeline');
             }}
@@ -1188,6 +1370,14 @@ export default function WritersRoomTab({
           </button>
         </div>
       </div>
+
+      {/* Production Prompt Modal */}
+      <ProductionPromptModal
+        isOpen={showScreenplayPromptModal}
+        onClose={() => setShowScreenplayPromptModal(false)}
+        series={activeSeries}
+        initialShotIndex={activeShotIndex}
+      />
     </div>
   )}
     {/* ========================================================

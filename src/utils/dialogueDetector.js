@@ -2,6 +2,7 @@
  * dialogueDetector.js
  * Intelligent Dialogue & Speaker Detection and Screenplay Converter for SeriesX
  */
+import { analyzeDialogueEmotionAndCamera } from './cinematographyEngine';
 
 /**
  * Clean and normalize text
@@ -220,32 +221,25 @@ export function convertDialoguesTo916Shots(beats, series) {
     const shortName = (speaker.name || 'ตัวละคร').split('/')[0].trim();
     const isHeroine = (speaker.role || '').includes('นางเอก') || (speaker.role || '').includes('หญิง');
 
-    // Generate Vertical 9:16 camera parameters
-    const cameraSetups = [
-      {
-        lens: "85mm Cine Prime f/1.4 (Tight Vertical Portrait)",
-        movement: "Vertical Slow Push-In (Z-Axis Depth Focus)",
-        framing: "Extreme Close-Up (Tight 9:16 Upper-Third Eyes)",
-        depthOfField: "Ultra Shallow (ฉากหลังเบลอนวลโบเก้)",
-        tiltAngle: "Eye-level with subtle 2° Dutch Tilt"
-      },
-      {
-        lens: "50mm T1.5 High-Speed Prime",
-        movement: "Over-the-Shoulder 9:16 Reverse Reaction",
-        framing: "Medium Close-Up (Chest to Head Frame)",
-        depthOfField: "Cinematic f/1.8 with foreground shoulder silhouette",
-        tiltAngle: "Subtle low angle (Power dynamic)"
-      },
-      {
-        lens: "105mm Macro Cine f/2.0",
-        movement: "Static Locked-Off Tension Hold",
-        framing: "Choker Close-Up (Lips & Jaw Micro-expression)",
-        depthOfField: "Razor-thin DOF on eye pupil dilation",
-        tiltAngle: "Strict level eye-to-eye"
-      }
-    ];
+    // Hollywood Emotional Cinematography Analysis
+    const emotionAnalysis = analyzeDialogueEmotionAndCamera(
+      beat.dialogue,
+      beat.parenthetical || '',
+      beat.contextAction || '',
+      speaker.role || ''
+    );
+    const arch = emotionAnalysis.archetype;
 
-    const cam = cameraSetups[index % cameraSetups.length];
+    const cam = {
+      lens: arch.lens,
+      movement: arch.movement,
+      framing: arch.framing,
+      depthOfField: arch.depthOfField,
+      tiltAngle: arch.tiltAngle,
+      hollywoodRef: arch.hollywoodRef,
+      psychologicalIntent: arch.psychologicalIntent,
+      lightingRatio: arch.lightingRatio
+    };
 
     shots.push({
       id: `shot-auto-${shotNum}`,
@@ -253,25 +247,28 @@ export function convertDialoguesTo916Shots(beats, series) {
       character: shortName,
       name: index === 0 
         ? `ช็อตเปิด 3-Second Hook: ${shortName} ปะทะคารม` 
-        : `ช็อตที่ ${shotNum}: ${shortName} ตอบโต้ความขัดแย้ง`,
+        : `ช็อตที่ ${shotNum}: ${shortName} (${arch.name.split('(')[0].trim()})`,
       timecode: `${startTimeFormatted} - ${endTimeFormatted}`,
       duration: `${durationSec.toFixed(1)}s`,
       mediaUrl: speaker.extremeActingImage || speaker.portrait || (isHeroine ? "/assets/rin_extreme_acting.jpg" : "/assets/tadao_dutch_acting.jpg"),
       location: "ห้องประชุมกระจกชั้น 48 ท่ามกลางพายุฝน",
+      lighting: arch.lightingRatio || "Cinematic Teal & Warm Gold, Rim Light จากวิวตึกระฟ้า",
       sfx: isHeroine ? "เสียงพายุฝนกระหน่ำซัดกระจก, เสียงสูดหายใจสะกดอารมณ์" : "เสียงวางแก้วคริสตัลกระทบไม้, เสียงฝีเท้าก้าวคุกคาม",
       bgm: "Dark cinematic low cello swell with dissonant violin screech",
       aiHookScore: index === 0 ? 98 : 94,
       qaStatus: "PASS",
+      hollywoodGrammarReason: emotionAnalysis.reason,
       cameraDirector: cam,
       actorDirecting: {
         character: shortName,
         facialMicroExpressions: speaker.actingStyle || (isHeroine 
-          ? "สายตามุ่งมั่นไม่ยอมแพ้ ริมฝีปากสั่นระริกก่อนเกร็งสะกดอารมณ์" 
+          ? "สายตามุ่งมั่นไม่ยอมแพ้ ริมฝีปากสั่นระริกก่อนเกร็งสะกดอารมณ์ น้ำตาเอ่อคลอเบ้า" 
           : "สีหน้านิ่งดั่งหินผา ขากรรไกรเกร็ง แววตาคมกริบดั่งเหยี่ยว"),
         bodyLanguage: beat.contextAction || (isHeroine 
           ? "ยืนตัวตรง ไหล่สั่นเล็กน้อย กำหมัดแน่น" 
           : "ยืนเต็มความสูง ก้าวประชิดตัว จ้องลึกเข้าไปในดวงตา"),
-        facsCode: isHeroine ? "AU1+AU4 (Brow Furrow), AU20 (Lip Tremor 70%)" : "AU4+AU9 (Wrinkle), AU26 (Jaw Clench)"
+        facsCode: arch.facsCode,
+        biologicalMotion: arch.biologicalMotion
       },
       vocalProsody: {
         dialogue: beat.dialogue,
