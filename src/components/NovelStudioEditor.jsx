@@ -9,10 +9,13 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify, List, ListOrdered,
   Indent, Outdent, RemoveFormatting, Undo2, Redo2, Search, Replace,
   Scissors, Split, Ruler, X, ChevronUp, Copy, CheckCheck, Eye,
-  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink, Home, Volume2
+  UserPlus, Users, UserCheck, ArrowUpRight, ExternalLink, Home, Volume2,
+  AtSign, Film
 } from 'lucide-react';
 
 import AddCharacterModal from './AddCharacterModal';
+import AutoSpeakerScriptModal from './AutoSpeakerScriptModal';
+import { detectDialoguesAndSpeakers, convertDialoguesTo916Shots } from '../utils/dialogueDetector';
 
 export default function NovelStudioEditor({
   series,
@@ -179,6 +182,21 @@ export default function NovelStudioEditor({
   const [activeTextColor, setActiveTextColor] = useState('#1D2425');
   const [activeHighlightColor, setActiveHighlightColor] = useState('transparent');
 
+  // @ Character Mention & Dialogue States
+  const [mentionMenu, setMentionMenu] = useState({
+    open: false,
+    query: '',
+    activeIndex: 0,
+    coords: { top: 0, left: 0 },
+    rangeNode: null,
+    atOffset: -1,
+    cursorOffset: 0
+  });
+
+  // Auto Speaker Detection & Screenplay Modal States
+  const [showAutoSpeakerModal, setShowAutoSpeakerModal] = useState(false);
+  const [autoSpeakerAnalysis, setAutoSpeakerAnalysis] = useState(null);
+
   // Find & Replace
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [findKeyword, setFindKeyword] = useState('');
@@ -319,6 +337,159 @@ export default function NovelStudioEditor({
         return;
       }
     }
+  };
+
+  // Filter characters for @mention
+  const filteredMentionChars = currentCharacters.filter(char => {
+    if (!mentionMenu.query) return true;
+    const name = (char.name || '').toLowerCase();
+    const role = (char.role || '').toLowerCase();
+    return name.includes(mentionMenu.query) || role.includes(mentionMenu.query);
+  });
+
+  // Check if @ was typed at cursor position
+  const checkMentionTrigger = () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) {
+      if (mentionMenu.open) setMentionMenu(prev => ({ ...prev, open: false }));
+      return;
+    }
+    const range = sel.getRangeAt(0);
+    const node = range.startContainer;
+    if (node && node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent;
+      const cursorOffset = range.startOffset;
+      const textBefore = text.slice(0, cursorOffset);
+      const atIdx = textBefore.lastIndexOf('@');
+      
+      if (atIdx !== -1) {
+        const query = textBefore.slice(atIdx + 1);
+        if (!/[\s\n]/.test(query) && query.length < 25) {
+          let coords = { top: 180, left: 100 };
+          try {
+            const tempRange = range.cloneRange();
+            tempRange.setStart(node, atIdx);
+            tempRange.setEnd(node, cursorOffset);
+            const rects = tempRange.getClientRects();
+            const r = rects.length > 0 ? rects[0] : tempRange.getBoundingClientRect();
+            if (r && r.bottom) {
+              coords = {
+                top: r.bottom + 6,
+                left: Math.max(10, Math.min(window.innerWidth - 330, r.left))
+              };
+            }
+          } catch (e) {
+            if (editorRef.current) {
+              const r = editorRef.current.getBoundingClientRect();
+              coords = { top: r.top + 100, left: r.left + 50 };
+            }
+          }
+
+          setMentionMenu({
+            open: true,
+            query: query.trim().toLowerCase(),
+            activeIndex: 0,
+            coords,
+            rangeNode: node,
+            atOffset: atIdx,
+            cursorOffset
+          });
+          return;
+        }
+      }
+    }
+    if (mentionMenu.open) {
+      setMentionMenu(prev => ({ ...prev, open: false }));
+    }
+  };
+
+  // Keyboard navigation inside mention menu
+  const handleEditorKeyDown = (e) => {
+    if (mentionMenu.open && filteredMentionChars.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionMenu(prev => ({ ...prev, activeIndex: (prev.activeIndex + 1) % filteredMentionChars.length }));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionMenu(prev => ({ ...prev, activeIndex: (prev.activeIndex - 1 + filteredMentionChars.length) % filteredMentionChars.length }));
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSelectMention(filteredMentionChars[mentionMenu.activeIndex] || filteredMentionChars[0], 'dialogue');
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionMenu(prev => ({ ...prev, open: false }));
+        return;
+      }
+    }
+  };
+
+  // Select character from mention menu
+  const handleSelectMention = (char, type = 'dialogue') => {
+    if (!char) {
+      setMentionMenu(prev => ({ ...prev, open: false }));
+      return;
+    }
+    const shortName = (char.name || '').split('/')[0].trim();
+    const sel = window.getSelection();
+
+    try {
+      if (mentionMenu.rangeNode && mentionMenu.rangeNode.parentNode) {
+        const node = mentionMenu.rangeNode;
+        const atIdx = mentionMenu.atOffset;
+        const endIdx = Math.min(node.textContent.length, sel.focusOffset || mentionMenu.cursorOffset);
+
+        const range = document.createRange();
+        range.setStart(node, atIdx);
+        range.setEnd(node, endIdx);
+        range.deleteContents();
+
+        if (type === 'dialogue') {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `<p style="margin: 14px 0; padding: 10px 14px; background: rgba(11, 74, 81, 0.04); border-left: 3.5px solid var(--teal-primary); border-radius: 0 8px 8px 0; text-indent: 0; line-height: 1.8;"><strong style="color: var(--teal-primary); font-weight: 700; margin-right: 6px;">@${shortName}:</strong><span style="color: #2D3748;">&ldquo;...&rdquo;</span></p><p style="margin-bottom: 1.25em; text-indent: 2.2em; line-height: 2.15;"><br></p>`;
+
+          const frag = document.createDocumentFragment();
+          let child;
+          while ((child = wrapper.firstChild)) {
+            frag.appendChild(child);
+          }
+          range.insertNode(frag);
+        } else {
+          const tag = document.createElement('span');
+          tag.className = 'character-inline-tag';
+          tag.style.cssText = 'color: var(--teal-primary); font-weight: 700; background: rgba(11,74,81,0.09); padding: 1px 6px; border-radius: 4px; display: inline-block; margin: 0 2px;';
+          tag.textContent = `@${shortName}`;
+          range.insertNode(tag);
+
+          const space = document.createTextNode(' ');
+          range.collapse(false);
+          range.insertNode(space);
+        }
+
+        if (!taggedCharacterIds.includes(char.id)) {
+          setTaggedCharacterIds(prev => [...prev, char.id]);
+        }
+
+        handleEditorInput();
+      }
+    } catch (err) {
+      console.error("Error inserting mention", err);
+    }
+
+    setMentionMenu(prev => ({ ...prev, open: false }));
+  };
+
+  // Open Auto Speaker Detection & Screenplay Modal
+  const handleOpenAutoSpeaker = () => {
+    const rawText = editorRef.current ? editorRef.current.innerText : (currentChapter.content || '');
+    const analysis = detectDialoguesAndSpeakers(rawText, currentCharacters);
+    setAutoSpeakerAnalysis(analysis);
+    setShowAutoSpeakerModal(true);
   };
 
   // Google Docs Command Runner
@@ -989,10 +1160,34 @@ export default function NovelStudioEditor({
               </button>
             )}
 
+            {/* Auto Speaker & Screenplay Button */}
+            <button
+              type="button"
+              onClick={handleOpenAutoSpeaker}
+              className="btn-primary"
+              style={{
+                padding: '6px 14px',
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: 'var(--shadow-teal-btn)'
+              }}
+              title="วิเคราะห์ตรวจจับตัวละครผู้พูดอัตโนมัติ และแปลงเป็นบทสคิปต์ 9:16 ได้ทันที แม้ไม่ได้พิมพ์ @"
+            >
+              <Sparkles size={14} strokeWidth={2} />
+              <span>ตรวจจับผู้พูด & แปลงบทซีรีส์</span>
+            </button>
+
             {/* Convert to 9:16 Script */}
             {onConvertToScreenplay && (
               <button
-                onClick={() => onConvertToScreenplay(currentChapter)}
+                onClick={() => {
+                  const rawText = editorRef.current ? editorRef.current.innerText : (currentChapter.content || '');
+                  const analysis = detectDialoguesAndSpeakers(rawText, currentCharacters);
+                  const generatedShots = convertDialoguesTo916Shots(analysis.beats, safeSeries);
+                  onConvertToScreenplay(currentChapter, generatedShots);
+                }}
                 className="btn-secondary"
                 style={{ padding: '6px 14px', fontSize: '0.78rem', background: 'var(--bg-raised)', borderColor: 'var(--teal-primary)', color: 'var(--teal-primary)' }}
                 title="แปลงเนื้อหาบทนี้เป็น Beat Sheet บทซีรีส์ 9:16 ทันที"
@@ -1998,10 +2193,58 @@ export default function NovelStudioEditor({
                   <Wand2 size={12} strokeWidth={2} />
                   <span>{hasActiveSelection ? "AI ปรับแก้ที่เลือก" : "AI แก้ไขบท"}</span>
                 </button>
+
+                {/* Quick @ Mention Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!editorRef.current) return;
+                    editorRef.current.focus();
+                    document.execCommand('insertText', false, '@');
+                    handleEditorInput();
+                    checkMentionTrigger();
+                  }}
+                  className="btn-secondary"
+                  style={{
+                    padding: '3px 9px',
+                    fontSize: '0.72rem',
+                    height: '26px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: 'var(--teal-primary)',
+                    borderColor: 'var(--teal-primary)',
+                    background: 'rgba(11, 74, 81, 0.05)'
+                  }}
+                  title="พิมพ์ @ เพื่อระบุตัวละครผู้พูดและแทรกบทพูดทันที"
+                >
+                  <AtSign size={12} strokeWidth={2.5} />
+                  <span>@ระบุตัวละคร</span>
+                </button>
               </div>
 
               {/* Right Side Tools: Comment Button & Auto-Save */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={handleOpenAutoSpeaker}
+                  className="btn-secondary"
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.74rem',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    color: 'var(--teal-primary)',
+                    borderColor: 'var(--teal-primary)',
+                    background: 'var(--bg-raised)'
+                  }}
+                  title="สแกนตรวจจับผู้พูดในนิยายอัตโนมัติ และแปลงเป็นบทซีรีส์ 9:16"
+                >
+                  <Sparkles size={12} strokeWidth={2} />
+                  <span>สแกนผู้พูด</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleCaptureSelectionForComment}
@@ -2243,15 +2486,160 @@ export default function NovelStudioEditor({
                 ref={editorRef}
                 contentEditable="true"
                 suppressContentEditableWarning={true}
-                onInput={handleEditorInput}
-                onMouseUp={handleSelectionChange}
-                onKeyUp={handleSelectionChange}
+                onInput={() => {
+                  handleEditorInput();
+                  checkMentionTrigger();
+                }}
+                onKeyDown={handleEditorKeyDown}
+                onMouseUp={() => {
+                  handleSelectionChange();
+                  checkMentionTrigger();
+                }}
+                onKeyUp={() => {
+                  handleSelectionChange();
+                  checkMentionTrigger();
+                }}
                 style={{
                   minHeight: '720px',
                   outline: 'none',
                   fontSize: `${currentFontSize}pt`
                 }}
               />
+
+              {/* Floating @ Character Mention Autocomplete Dropdown */}
+              {mentionMenu.open && filteredMentionChars.length > 0 && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: `${mentionMenu.coords.top}px`,
+                    left: `${mentionMenu.coords.left}px`,
+                    width: '320px',
+                    maxHeight: '360px',
+                    background: 'var(--bg-raised)',
+                    border: '1.5px solid var(--teal-primary)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: '0 12px 32px rgba(11, 74, 81, 0.28)',
+                    zIndex: 99999,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    overflow: 'hidden',
+                    animation: 'fadeIn 0.12s ease-out'
+                  }}
+                >
+                  {/* Mention Header */}
+                  <div style={{
+                    padding: '8px 12px',
+                    background: 'var(--bg-surface)',
+                    borderBottom: '1px solid var(--border-subtle)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--teal-primary)', fontWeight: 700 }}>
+                      <AtSign size={13} strokeWidth={2.5} />
+                      <span>เลือกตัวละครกำหนดบทพูด (Mention)</span>
+                    </div>
+                    <span style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
+                      กด Enter หรือคลิกเลือก
+                    </span>
+                  </div>
+
+                  {/* Character Items List */}
+                  <div style={{ overflowY: 'auto', flex: 1, padding: '4px', maxHeight: '260px' }}>
+                    {filteredMentionChars.map((char, idx) => {
+                      const isSelected = idx === mentionMenu.activeIndex;
+                      const shortName = (char.name || '').split('/')[0].trim();
+                      return (
+                        <div
+                          key={char.id}
+                          onMouseEnter={() => setMentionMenu(prev => ({ ...prev, activeIndex: idx }))}
+                          style={{
+                            padding: '8px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: isSelected ? 'rgba(11, 74, 81, 0.08)' : 'transparent',
+                            border: isSelected ? '1px solid var(--teal-primary)' : '1px solid transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            transition: 'background 0.1s'
+                          }}
+                        >
+                          <div 
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}
+                            onClick={() => handleSelectMention(char, 'dialogue')}
+                          >
+                            <img
+                              src={char.portrait || '/assets/default_avatar.jpg'}
+                              alt=""
+                              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '1px solid var(--border-subtle)' }}
+                            />
+                            <div style={{ overflow: 'hidden' }}>
+                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {shortName}
+                              </div>
+                              <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {char.role}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleSelectMention(char, 'dialogue'); }}
+                              title="แทรกเป็นบทพูด: @ชื่อ: &quot;...&quot;"
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: 'var(--radius-pill)',
+                                background: 'var(--teal-primary)',
+                                color: '#fff',
+                                border: 'none',
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              + บทพูด
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); handleSelectMention(char, 'tag'); }}
+                              title="แทรกเฉพาะแท็กชื่อ: @ชื่อ"
+                              style={{
+                                padding: '3px 6px',
+                                borderRadius: 'var(--radius-pill)',
+                                background: 'var(--bg-inset)',
+                                color: 'var(--text-main)',
+                                border: '1px solid var(--border-subtle)',
+                                fontSize: '0.66rem',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              แท็กชื่อ
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Keyboard Shortcut Footer */}
+                  <div style={{
+                    padding: '5px 10px',
+                    background: 'var(--bg-inset)',
+                    borderTop: '1px solid var(--border-subtle)',
+                    fontSize: '0.65rem',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span>↑↓ นำทาง | Enter ใส่บทพูด</span>
+                    <span>Esc ปิดเมนู</span>
+                  </div>
+                </div>
+              )}
 
               {/* Author Director Memo Box */}
               <div style={{
@@ -3905,6 +4293,30 @@ export default function NovelStudioEditor({
         onClose={() => setShowNewCharacterModal(false)}
         series={series}
         onSaveCharacter={handleSaveNewCharacter}
+      />
+
+      {/* AUTO SPEAKER & SCREENPLAY CONVERSION MODAL */}
+      <AutoSpeakerScriptModal
+        isOpen={showAutoSpeakerModal}
+        onClose={() => setShowAutoSpeakerModal(false)}
+        analysisData={autoSpeakerAnalysis}
+        characters={currentCharacters}
+        series={safeSeries}
+        originalText={editorRef.current ? editorRef.current.innerText : (currentChapter.content || '')}
+        onApplyScreenplay={(shots) => {
+          if (onConvertToScreenplay) {
+            onConvertToScreenplay(currentChapter, shots);
+          }
+        }}
+        onApplyToNovel={(formattedText) => {
+          if (editorRef.current) {
+            const formattedHtml = formatTextToHtml(formattedText);
+            editorRef.current.innerHTML = formattedHtml;
+            handleEditorInput();
+            setAiNotice('แทรกป้ายชื่อตัวละคร @ เข้าสู่เนื้อหานิยายเรียบร้อยแล้ว');
+            setTimeout(() => setAiNotice(''), 3500);
+          }
+        }}
       />
 
     </div>

@@ -257,7 +257,13 @@ export default function WritersRoomTab({
             series={activeSeries}
             onUpdateSeries={onUpdateSeries}
             onAddCharacter={onAddCharacter}
-            onConvertToScreenplay={(chapter) => {
+            onConvertToScreenplay={(chapter, customShots) => {
+              if (customShots && customShots.length > 0) {
+                onUpdateSeries({
+                  ...activeSeries,
+                  shots: customShots
+                });
+              }
               setSubTab('screenplay');
             }}
             onOpenSeriesSettings={() => setSubTab('structure')}
@@ -864,14 +870,36 @@ export default function WritersRoomTab({
           <span>กลับไปคลังนิยายทั้งหมด (Projects)</span>
         </button>
 
-        <button
-          onClick={() => setSubTab('novel')}
-          className="btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem' }}
-        >
-          <Feather size={16} strokeWidth={2} />
-          <span>เข้าสู่หน้าเขียนนิยาย (Novel Studio)</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            onClick={() => setSubTab('novel')}
+            className="btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.85rem' }}
+          >
+            <Feather size={16} strokeWidth={2} />
+            <span>เข้าสู่หน้าเขียนนิยาย (Novel Studio)</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (onNavigate) onNavigate('/pipeline');
+            }}
+            className="btn-primary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 18px',
+              fontSize: '0.85rem',
+              boxShadow: 'var(--shadow-teal-btn)'
+            }}
+            title="ส่งช็อตทั้งหมดเข้าสู่กระบวนการเจนเสียงพากย์และวิดีโอ 9:16"
+          >
+            <Video size={16} strokeWidth={2} />
+            <span>ไปที่ Video & Audio Engine (Step 4)</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
@@ -1039,27 +1067,34 @@ export default function WritersRoomTab({
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <MessageSquare size={16} strokeWidth={2} color="var(--teal-primary)" />
                 <strong style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                  บทพูดและการออกเสียงอารมณ์: {selectedShot.character}
+                  บทพูดและการออกเสียงอารมณ์: {selectedShot.actorDirecting?.character || selectedShot.character || 'ตัวละคร'}
                 </strong>
               </div>
               <span className="badge badge-teal" style={{ fontSize: '0.7rem' }}>
-                {selectedShot.vocalProsody?.emotionTag || selectedShot.emotionTag}
+                {selectedShot.vocalProsody?.emotionTag || selectedShot.emotionTag || 'Dramatic'}
               </span>
             </div>
 
-            <p style={{
+            <div style={{
               fontSize: '1rem',
               color: 'var(--text-main)',
               fontWeight: 500,
-              lineHeight: 1.5,
-              padding: '10px 14px',
+              lineHeight: 1.6,
+              padding: '12px 16px',
               background: 'var(--bg-raised)',
               boxShadow: 'var(--shadow-raised-sm)',
               borderRadius: 'var(--radius-sm)',
               borderLeft: '4px solid var(--teal-primary)'
             }}>
-              "{selectedShot.vocalProsody?.withCues || selectedShot.dialogue}"
-            </p>
+              {selectedShot.vocalProsody?.withCues && selectedShot.vocalProsody.withCues.includes('(') && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--teal-primary)', fontWeight: 600, fontStyle: 'italic', marginBottom: '4px' }}>
+                  คิวน้ำเสียง: {selectedShot.vocalProsody.withCues.split('"')[0].trim()}
+                </div>
+              )}
+              <div style={{ fontWeight: 600 }}>
+                &ldquo;{selectedShot.vocalProsody?.dialogue || selectedShot.dialogue}&rdquo;
+              </div>
+            </div>
 
             <div style={{
               marginTop: '10px',
@@ -1079,6 +1114,78 @@ export default function WritersRoomTab({
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Pipeline Navigation Footer Banner */}
+      <div style={{
+        marginTop: '16px',
+        padding: '18px 24px',
+        background: 'var(--bg-surface)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--border-subtle)',
+        boxShadow: 'var(--shadow-raised-sm)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '14px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '10px',
+            background: 'rgba(11, 74, 81, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--teal-primary)'
+          }}>
+            <Sparkles size={20} strokeWidth={2.2} />
+          </div>
+          <div>
+            <strong style={{ fontSize: '0.94rem', color: 'var(--text-main)', display: 'block' }}>
+              บทซีรีส์ 9:16 พร้อมเข้าสู่สายการผลิต ({shots.length} ช็อต)
+            </strong>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              ส่งช็อตที่ดึงมาจากนิยายเข้าสู่ห้องแคสติ้งตัวละคร หรือส่งไปสังเคราะห์เสียงพากย์และเจนวิดีโอ 9:16 ได้ทันที
+            </span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setSubTab('novel')}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', fontSize: '0.82rem' }}
+          >
+            ← กลับไปแก้บทนิยาย
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onNavigate) onNavigate('/characters');
+            }}
+            className="btn-secondary"
+            style={{ padding: '8px 16px', fontSize: '0.82rem', color: 'var(--teal-primary)', borderColor: 'var(--teal-primary)' }}
+          >
+            แคสติ้งตัวละคร (Step 2)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onNavigate) onNavigate('/pipeline');
+            }}
+            className="btn-primary"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 18px', fontSize: '0.84rem' }}
+          >
+            <span>ส่งไป Video & Audio Engine (Step 4)</span>
+            <ArrowRight size={14} />
+          </button>
         </div>
       </div>
     </div>
