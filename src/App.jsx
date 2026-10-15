@@ -50,7 +50,7 @@ export default function App() {
   } else if (path === '/screenplay') {
     activeTab = 'writers';
     writersSubTab = 'screenplay';
-  } else if (path === '/characters' || path === '/character') {
+  } else if (path === '/characters' || path === '/character' || path === '/casting') {
     activeTab = 'character';
   } else if (path === '/art') {
     activeTab = 'art';
@@ -173,6 +173,7 @@ export default function App() {
         qaStatus={isApproved ? 'APPROVED' : 'REVIEW'}
         onGoHome={handleGoHome}
         currentPath={path}
+        onNavigate={(route, params) => navigate(route, params)}
       />
 
       {/* Main Studio Viewport */}

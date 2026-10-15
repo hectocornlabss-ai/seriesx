@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock, ChevronDown, BookOpen } from 'lucide-react';
+import UserGuideModal from './UserGuideModal';
 
-export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus, onGoHome, currentPath = '/' }) {
+export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus, onGoHome, currentPath = '/', onNavigate }) {
   const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const tabs = [
     { id: 'writers', label: '1. Writers Room', sub: currentPath === '/novel' ? 'Google Docs' : 'Hook 96/100', icon: PenTool },
@@ -225,6 +227,30 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
             </strong>
           </div>
 
+          {/* User Guide Button */}
+          <button
+            type="button"
+            onClick={() => setShowGuide(true)}
+            id="btn-header-open-guide"
+            className="btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '7px 14px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: 'var(--teal-primary)',
+              borderColor: 'var(--teal-primary)',
+              background: 'var(--bg-raised)',
+              boxShadow: 'var(--shadow-raised-sm)'
+            }}
+            title="เปิดคู่มือการใช้งานระบบ SeriesX และผังการผลิต 6 ขั้นตอน"
+          >
+            <BookOpen size={15} strokeWidth={2.2} />
+            <span>คู่มือการใช้งาน (Guide)</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('pitch')}
             className="btn-primary"
@@ -253,6 +279,7 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
           return (
             <button
               key={tab.id}
+              id={`tab-btn-${tab.id}`}
               onClick={() => {
                 setActiveTab(tab.id);
                 if (tab.id === 'writers' && onGoHome) {
@@ -292,6 +319,23 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
           );
         })}
       </nav>
+      {/* Interactive User Guide Modal */}
+      <UserGuideModal
+        isOpen={showGuide}
+        onClose={() => setShowGuide(false)}
+        onNavigateTab={(route) => {
+          if (onNavigate) {
+            onNavigate(route, { id: activeSeries?.id });
+          } else if (setActiveTab) {
+            if (route.includes('novel') || route.includes('screenplay')) setActiveTab('writers');
+            else if (route.includes('character')) setActiveTab('character');
+            else if (route.includes('art')) setActiveTab('art');
+            else if (route.includes('pipeline')) setActiveTab('pipeline');
+            else if (route.includes('qa')) setActiveTab('qa');
+            else if (route.includes('pitch')) setActiveTab('pitch');
+          }
+        }}
+      />
     </header>
   );
 }

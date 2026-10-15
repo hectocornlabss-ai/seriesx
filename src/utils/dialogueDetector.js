@@ -250,11 +250,18 @@ export function convertDialoguesTo916Shots(beats, series) {
     shots.push({
       id: `shot-auto-${shotNum}`,
       number: shotNum,
+      character: shortName,
       name: index === 0 
         ? `ช็อตเปิด 3-Second Hook: ${shortName} ปะทะคารม` 
         : `ช็อตที่ ${shotNum}: ${shortName} ตอบโต้ความขัดแย้ง`,
       timecode: `${startTimeFormatted} - ${endTimeFormatted}`,
       duration: `${durationSec.toFixed(1)}s`,
+      mediaUrl: speaker.extremeActingImage || speaker.portrait || (isHeroine ? "/assets/rin_extreme_acting.jpg" : "/assets/tadao_dutch_acting.jpg"),
+      location: "ห้องประชุมกระจกชั้น 48 ท่ามกลางพายุฝน",
+      sfx: isHeroine ? "เสียงพายุฝนกระหน่ำซัดกระจก, เสียงสูดหายใจสะกดอารมณ์" : "เสียงวางแก้วคริสตัลกระทบไม้, เสียงฝีเท้าก้าวคุกคาม",
+      bgm: "Dark cinematic low cello swell with dissonant violin screech",
+      aiHookScore: index === 0 ? 98 : 94,
+      qaStatus: "PASS",
       cameraDirector: cam,
       actorDirecting: {
         character: shortName,
