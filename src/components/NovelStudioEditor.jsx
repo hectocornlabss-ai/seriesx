@@ -13,7 +13,6 @@ import {
   AtSign, Film
 } from 'lucide-react';
 
-import AddCharacterModal from './AddCharacterModal';
 import AutoSpeakerScriptModal from './AutoSpeakerScriptModal';
 import { detectDialoguesAndSpeakers, convertDialoguesTo916Shots } from '../utils/dialogueDetector';
 
@@ -4287,13 +4286,6 @@ export default function NovelStudioEditor({
         </div>
       )}
 
-      {/* ADD CHARACTER MODAL (OPENROUTER AI) */}
-      <AddCharacterModal
-        isOpen={showNewCharacterModal}
-        onClose={() => setShowNewCharacterModal(false)}
-        series={series}
-        onSaveCharacter={handleSaveNewCharacter}
-      />
 
       {/* AUTO SPEAKER & SCREENPLAY CONVERSION MODAL */}
       <AutoSpeakerScriptModal
@@ -4302,7 +4294,7 @@ export default function NovelStudioEditor({
         analysisData={autoSpeakerAnalysis}
         characters={currentCharacters}
         series={safeSeries}
-        originalText={editorRef.current ? editorRef.current.innerText : (currentChapter.content || '')}
+        originalText={currentChapter.content || ''}
         onApplyScreenplay={(shots) => {
           if (onConvertToScreenplay) {
             onConvertToScreenplay(currentChapter, shots);

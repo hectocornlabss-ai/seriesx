@@ -127,6 +127,45 @@ export function setSelectedOpenRouterModel(modelId) {
 }
 
 /**
+ * Test OpenRouter API Key connectivity
+ */
+export async function testOpenRouterConnection(apiKey) {
+  const keyToTest = apiKey || getOpenRouterApiKey();
+  if (!keyToTest || !keyToTest.trim()) {
+    return { success: false, error: 'กรุณาระบุ API Key ก่อนทำการทดสอบ' };
+  }
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${keyToTest.trim()}`
+      },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        success: true,
+        label: data.data?.label || 'Active Key',
+        usage: data.data?.usage,
+        limit: data.data?.limit
+      };
+    } else {
+      const err = await res.json().catch(() => ({}));
+      return {
+        success: false,
+        error: err.error?.message || `การเชื่อมต่อไม่สำเร็จ (รหัสสถานะ ${res.status})`
+      };
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: `ไม่สามารถเชื่อมต่อไปยัง OpenRouter ได้: ${err.message}`
+    };
+  }
+}
+
+/**
  * Intelligent character generation:
  * - If API key is available, calls OpenRouter.
  * - If not available yet ("ยังไม่ได้เตรียม"), uses smart local drama generator tuned for vertical drama.
@@ -147,6 +186,7 @@ export async function generateCharacterProfile({ prompt = '', role = '', archety
           'HTTP-Referer': window.location.origin || 'http://localhost:5173',
           'X-Title': 'SeriesX Studio'
         },
+        signal: AbortSignal.timeout(15000),
         body: JSON.stringify({
           model: selectedModel,
           temperature: 0.75,

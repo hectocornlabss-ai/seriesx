@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
-import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock, ChevronDown, BookOpen } from 'lucide-react';
+import { Film, Sparkles, PenTool, UserCheck, Package, Camera, ShieldCheck, FileText, CheckCircle2, Clock, ChevronDown, BookOpen, Settings, Key } from 'lucide-react';
 import UserGuideModal from './UserGuideModal';
+import { getOpenRouterApiKey } from '../utils/openRouter';
 
-export default function Header({ activeSeries, seriesList, onSelectSeries, activeTab, setActiveTab, onExportPitchDeck, qaStatus, onGoHome, currentPath = '/', onNavigate }) {
+export default function Header({ 
+  activeSeries, 
+  seriesList, 
+  onSelectSeries, 
+  activeTab, 
+  setActiveTab, 
+  onExportPitchDeck, 
+  qaStatus, 
+  onGoHome, 
+  currentPath = '/', 
+  onNavigate,
+  onOpenSettings
+}) {
   const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
 
@@ -146,6 +159,26 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
                   บทซีรีส์แนวตั้ง 9:16
                 </span>
               )}
+              {currentPath === '/character-edit' && (
+                <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  แก้ไขข้อมูลตัวละครเชิงลึก (Character Studio)
+                </span>
+              )}
+              {currentPath === '/character-new' && (
+                <span className="badge badge-sand" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  สร้างตัวละครใหม่ (New Character)
+                </span>
+              )}
+              {(currentPath === '/sponsor-edit' || currentPath === '/art-edit') && (
+                <span className="badge badge-teal" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  สตูดิโอจัดทำมุมกล้องสินค้า 8 มุมมอง (Product Camera Studio)
+                </span>
+              )}
+              {(currentPath === '/sponsor-new' || currentPath === '/art-new') && (
+                <span className="badge badge-sand" style={{ fontSize: '0.68rem', padding: '1px 8px' }}>
+                  เพิ่มสินค้าสปอนเซอร์ใหม่ (New Sponsor)
+                </span>
+              )}
             </p>
           </div>
 
@@ -202,28 +235,53 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
         </div>
 
         {/* Global Pipeline Health & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '6px',
             background: 'var(--bg-inset)',
             boxShadow: 'var(--shadow-inset)',
-            padding: '7px 14px',
+            padding: '6px 12px',
             borderRadius: 'var(--radius-pill)',
             border: '1px solid var(--border-subtle)',
-            fontSize: '0.8rem'
+            fontSize: '0.78rem',
+            whiteSpace: 'nowrap'
           }}>
             <div style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
               backgroundColor: qaStatus === 'APPROVED' ? 'var(--accent-green)' : 'var(--accent-amber)',
-              boxShadow: qaStatus === 'APPROVED' ? '0 0 6px rgba(31, 122, 89, 0.6)' : '0 0 6px rgba(180, 107, 24, 0.6)'
+              boxShadow: qaStatus === 'APPROVED' ? '0 0 6px rgba(31, 122, 89, 0.6)' : '0 0 6px rgba(180, 107, 24, 0.6)',
+              flexShrink: 0
             }} />
             <span style={{ color: 'var(--text-muted)' }}>สถานะ:</span>
             <strong style={{ color: qaStatus === 'APPROVED' ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
-              {qaStatus === 'APPROVED' ? 'Director Approved (พร้อมส่งมอบ)' : 'In Quality Review Gate'}
+              {qaStatus === 'APPROVED' ? 'Approved' : 'Review Gate'}
+            </strong>
+          </div>
+
+          {/* AI Connection Status Pill */}
+          <div
+            onClick={onOpenSettings}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: 'var(--bg-inset)',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-pill)',
+              border: '1px solid var(--border-subtle)',
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+            title="คลิกเพื่อจัดการ OpenRouter AI Key และสำรองข้อมูล"
+          >
+            <Key size={13} color={getOpenRouterApiKey() ? 'var(--accent-green)' : 'var(--teal-primary)'} />
+            <span style={{ color: 'var(--text-muted)' }}>AI:</span>
+            <strong style={{ color: getOpenRouterApiKey() ? 'var(--accent-green)' : 'var(--teal-primary)' }}>
+              {getOpenRouterApiKey() ? 'Connected' : 'Simulation'}
             </strong>
           </div>
 
@@ -237,7 +295,7 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              padding: '7px 14px',
+              padding: '7px 12px',
               fontSize: '0.8rem',
               fontWeight: 700,
               color: 'var(--teal-primary)',
@@ -248,7 +306,30 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
             title="เปิดคู่มือการใช้งานระบบ SeriesX และผังการผลิต 6 ขั้นตอน"
           >
             <BookOpen size={15} strokeWidth={2.2} />
-            <span>คู่มือการใช้งาน (Guide)</span>
+            <span>คู่มือ (Guide)</span>
+          </button>
+
+          {/* Studio Settings Button */}
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            id="btn-header-open-settings"
+            className="btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '7px 12px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: 'var(--text-main)',
+              background: 'var(--bg-raised)',
+              boxShadow: 'var(--shadow-raised-sm)'
+            }}
+            title="ตั้งค่าสตูดิโอ (API Key, Backup, Model)"
+          >
+            <Settings size={15} strokeWidth={2} />
+            <span>ตั้งค่า (Settings)</span>
           </button>
 
           <button
@@ -262,17 +343,21 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
       </div>
 
       {/* Navigation Tabs */}
-      <nav style={{
-        display: 'flex',
-        gap: '4px',
-        marginTop: '14px',
-        padding: '4px',
-        background: 'var(--bg-inset)',
-        borderRadius: 'var(--radius-pill)',
-        boxShadow: 'var(--shadow-inset)',
-        overflowX: 'auto',
-        border: '1px solid var(--border-subtle)'
-      }}>
+      <nav 
+        className="header-tabs-nav"
+        style={{
+          display: 'flex',
+          gap: '6px',
+          marginTop: '12px',
+          padding: '4px',
+          background: 'var(--bg-inset)',
+          borderRadius: 'var(--radius-pill)',
+          boxShadow: 'var(--shadow-inset)',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          WebkitOverflowScrolling: 'touch',
+          border: '1px solid var(--border-subtle)'
+        }}>
         {tabs.map(tab => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -287,6 +372,7 @@ export default function Header({ activeSeries, seriesList, onSelectSeries, activ
                 }
               }}
               style={{
+                flexShrink: 0,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',

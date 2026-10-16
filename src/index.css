@@ -382,3 +382,59 @@ h1, h2, h3, h4, .font-display {
   text-indent: 0 !important;
 }
 
+/* Sound Wave & Pulse Keyframes */
+@keyframes pulse {
+  0% { transform: scaleY(0.4); opacity: 0.7; }
+  100% { transform: scaleY(1.2); opacity: 1; }
+}
+
+@keyframes slowPushIn {
+  0% { transform: scale(1.0) translate(0, 0); }
+  50% { transform: scale(1.06) translate(0, -6px); }
+  100% { transform: scale(1.0) translate(0, 0); }
+}
+
+@keyframes rainFall {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 20% 100%; }
+}
+
+@keyframes waveBar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1.15); }
+}
+
+@keyframes radarPing {
+  0% { transform: scale(0.96); opacity: 0.8; box-shadow: 0 0 0 0 rgba(31, 122, 89, 0.6); }
+  70% { transform: scale(1.02); opacity: 1; box-shadow: 0 0 0 8px rgba(31, 122, 89, 0); }
+  100% { transform: scale(0.96); opacity: 0.8; box-shadow: 0 0 0 0 rgba(31, 122, 89, 0); }
+}
+
+/* Print Media Styles for Master PDF Export */
+@media print {
+  header, footer, nav, button, .no-print, #btn-header-home-icon, #btn-header-open-guide, #btn-header-open-settings {
+    display: none !important;
+  }
+  body, html, #root, main, .studio-container {
+    background: #FFFFFF !important;
+    color: #111827 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+  }
+  .clay-card {
+    box-shadow: none !important;
+    border: 1px solid #D1D5DB !important;
+    background: #FFFFFF !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 16px !important;
+  }
+  .badge {
+    border: 1px solid #9CA3AF !important;
+    color: #111827 !important;
+    background: #F3F4F6 !important;
+  }
+}
+

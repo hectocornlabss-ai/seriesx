@@ -31,6 +31,24 @@ export const UNIVERSAL_NEGATIVE_PROMPT =
   "robotic movements, stiff unnatural posture, mannequin stillness, frozen facial expression, dead eyes, lack of blinking, doll-like skin, plastic face, jittery motion, abrupt camera jump, erratic limbs, extra fingers, deformed hands, morphing clothes, changing wardrobe color, flickering background, blurry resolution, low frame rate, unnatural physics, uncanny valley";
 
 /**
+ * Generate precise cinematic prompt directive for custom keyframe camera focus
+ */
+export function buildKeyframeFocusPromptSnippet(keyframeConfig) {
+  if (!keyframeConfig || !keyframeConfig.enabled) return '';
+  const { motionType = 'rack_focus', keyframes = [], transitionDuration = 3.5 } = keyframeConfig;
+  const kf1 = keyframes[0] || { x: 18, y: 21, zoom: 1.0, dof: 'f/1.4 shallow bokeh', targetName: 'Actor Face' };
+  const kf2 = keyframes[1] || { x: 25, y: 60, zoom: 0.88, dof: 'f/4 deep focus', targetName: 'Desk Anchor' };
+
+  if (motionType === 'slow_zoom_out') {
+    return `Optical Slow Zoom-Out & Focal Expansion: Over ${transitionDuration}s, camera gently pulls back from tight frame (${kf1.zoom || 1.15}x scale at focal anchor X:${kf1.x}%, Y:${kf1.y}%) to wide composition (${kf2.zoom || 0.88}x scale at X:${kf2.x}%, Y:${kf2.y}%), smoothly expanding frame to reveal environment, buttery smooth vertical 9:16 tracking`;
+  }
+  if (motionType === 'slow_zoom_in') {
+    return `Optical Slow Push-In & Focal Intensification: Over ${transitionDuration}s, camera smoothly moves inward from (${kf1.zoom || 0.95}x scale at X:${kf1.x}%, Y:${kf1.y}%) to extreme tight focus (${kf2.zoom || 1.12}x scale at X:${kf2.x}%, Y:${kf2.y}%), locking razor-sharp focus on ${kf2.targetName || 'actor gaze'}, shallow depth of field`;
+  }
+  return `Cinematic Rack Focus & Focal Choreography: Camera starts at 0.0s with focus locked on ${kf1.targetName || 'primary subject'} at coordinate (X:${kf1.x}%, Y:${kf1.y}%, ${kf1.dof || 'shallow depth'}), then smoothly transitions over ${transitionDuration}s to rack focus onto ${kf2.targetName || 'secondary target'} at coordinate (X:${kf2.x}%, Y:${kf2.y}%, zoom: ${kf2.zoom || 1.0}x), buttery smooth optical rack focus without lens jitter`;
+}
+
+/**
  * Generate a complete, production-ready prompt package for a given shot
  */
 export function generateShotProductionPrompt(shot, character, series, shotIndex = 0, allShots = []) {
@@ -47,6 +65,11 @@ export function generateShotProductionPrompt(shot, character, series, shotIndex 
   const framing = cam.framing || 'Extreme Close-Up 9:16 (Upper-Third)';
   const dof = cam.depthOfField || 'Ultra-shallow depth of field, creamy background bokeh';
   const tilt = cam.tiltAngle || 'Eye-level with subtle 2° Dutch tilt';
+
+  // Dynamic Keyframe Focus Directive (Only injected when user explicitly activates keyframe focus for this scene)
+  const focusDirective = shot.keyframeFocus?.enabled 
+    ? buildKeyframeFocusPromptSnippet(shot.keyframeFocus)
+    : '';
 
   const actor = shot.actorDirecting || {};
   const facialActing = actor.facialMicroExpressions || shot.action || 'Subtle emotional micro-expressions, piercing gaze';
@@ -73,6 +96,7 @@ export function generateShotProductionPrompt(shot, character, series, shotIndex 
 
   const hollywoodRef = shot.cameraDirector?.hollywoodRef ? `Hollywood Cinematography Grammar: inspired by ${shot.cameraDirector.hollywoodRef}. ` : '';
   const psychologicalIntent = shot.cameraDirector?.psychologicalIntent ? `Emotional Subtext: ${shot.cameraDirector.psychologicalIntent}. ` : '';
+  const opticalKeyframeText = focusDirective ? `Camera Motion & Focal Choreography: [${focusDirective}]. ` : '';
 
   // 2. Cinematic English Master Video Prompt (Models perform significantly better with precise English cinematography terms)
   const masterVideoPrompt = 
@@ -81,7 +105,7 @@ export function generateShotProductionPrompt(shot, character, series, shotIndex 
     `In-Scene Wardrobe Continuity Locked: ${wardrobe}, perfectly consistent fabric texture, button count, collar style, and jewelry strictly preserved across all cuts without mutation. ` +
     `Acting & Facial Dynamics: ${facialActing}. Body language: ${bodyLanguage}. ` +
     `Motion Quality: ${organicHumanMotionTokens}. ` +
-    `${hollywoodRef}${psychologicalIntent}` +
+    `${hollywoodRef}${psychologicalIntent}${opticalKeyframeText}` +
     `Environment & Setting: ${location}, night rainstorm outside, raindrops sliding down exterior glass pane with glistening neon reflections. ` +
     `Lighting & Optics: Shot on ARRI Alexa Mini, ${lens}, ${dof}, ${tilt}. ${lighting}. ` +
     `Scene Continuity Tag: [Continuity ID: ${continuityId} | Wardrobe Locked 100% | Lighting 2700K/6500K Match | Spatial Anchor: In front of dark oak conference table]. ` +
@@ -89,16 +113,16 @@ export function generateShotProductionPrompt(shot, character, series, shotIndex 
 
   // 3. Platform Specific Variants
   const klingPrompt = 
-    `[9:16 Vertical Video] ${framing} of ${charName}, ${wardrobe}. ${facialActing}, ${bodyLanguage}. Camera: ${lens}, ${movement}, ${tilt}. ${lighting}, ${location}, night rainstorm. Highly natural human acting with micro-breathing and subtle eye blinks. [Seed: ${seed}]`;
+    `[9:16 Vertical Video] ${framing} of ${charName}, ${wardrobe}. ${facialActing}, ${bodyLanguage}. Camera: ${lens}, ${movement}, ${tilt}. ${focusDirective ? `[Choreography: ${focusDirective}] ` : ''}${lighting}, ${location}, night rainstorm. Highly natural human acting with micro-breathing and subtle eye blinks. [Seed: ${seed}]`;
 
   const runwayPrompt = 
-    `9:16 vertical cinema shot. ${movement} on ${charName} (${wardrobe}). Acting: ${facialActing}. Environment: ${location} with rain on glass. Cinematic lighting: ${lighting}. Natural organic human movement, realistic eye blinking, no stiff motion. Lens: ${lens}.`;
+    `9:16 vertical cinema shot. ${movement} on ${charName} (${wardrobe}). ${focusDirective ? `Focal shift: ${focusDirective}. ` : ''}Acting: ${facialActing}. Environment: ${location} with rain on glass. Cinematic lighting: ${lighting}. Natural organic human movement, realistic eye blinking, no stiff motion. Lens: ${lens}.`;
 
   const hailuoPrompt = 
-    `Vertical 9:16 frame. ${charName} performing intense dramatic scene. ${facialActing}. ${bodyLanguage}. High fidelity human micro-expressions, realistic mouth tremble, fluid body physics. Camera: ${lens}, ${movement}. Setting: ${location}, moody cinematic lighting.`;
+    `Vertical 9:16 frame. ${charName} performing intense dramatic scene. ${facialActing}. ${bodyLanguage}. High fidelity human micro-expressions, realistic mouth tremble, fluid body physics. Camera: ${lens}, ${movement}. ${focusDirective ? `Camera rack focus: ${focusDirective}. ` : ''}Setting: ${location}, moody cinematic lighting.`;
 
   const lumaPrompt = 
-    `A cinematic 9:16 vertical shot. Camera performs a ${movement} towards ${charName}. She is ${bodyLanguage}, her face displaying ${facialActing}. Ultra-realistic human physics, chest breathing motion, soft eye blinks. Beautiful rain bokeh in background. ${lens}, ${lighting}.`;
+    `A cinematic 9:16 vertical shot. Camera performs a ${movement} towards ${charName}. ${focusDirective ? `Optical transition: ${focusDirective}. ` : ''}She is ${bodyLanguage}, her face displaying ${facialActing}. Ultra-realistic human physics, chest breathing motion, soft eye blinks. Beautiful rain bokeh in background. ${lens}, ${lighting}.`;
 
   const comfyUiPayload = {
     workflow: "SeriesX_Vertical_9_16_Wan21_ComfyUI",
@@ -115,7 +139,8 @@ export function generateShotProductionPrompt(shot, character, series, shotIndex 
       vector: movement,
       lens: lens,
       dof: dof,
-      tilt: tilt
+      tilt: tilt,
+      keyframe_directive: focusDirective || "Standard Auto-Focus"
     },
     continuity: {
       scene_id: continuityId,
